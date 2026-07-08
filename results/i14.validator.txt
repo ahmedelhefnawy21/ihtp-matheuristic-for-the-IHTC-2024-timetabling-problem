@@ -1,0 +1,22 @@
+VIOLATIONS: 
+RoomGenderMix.....................0
+PatientRoomCompatibility..........0
+SurgeonOvertime...................0
+OperatingTheaterOvertime..........0
+MandatoryUnscheduledPatients......0
+AdmissionDay......................0
+RoomCapacity......................0
+NursePresence.....................0
+UncoveredRoom.....................0
+Total violations = 0
+
+COSTS (weight X cost): 
+RoomAgeMix............................67 (  1 X  67)
+RoomSkillLevel.......................318 (  1 X 318)
+ContinuityOfCare....................3690 (  5 X 738)
+ExcessiveNurseWorkload...............115 (  5 X  23)
+OpenOperatingTheater................1150 ( 50 X  23)
+SurgeonTransfer........................6 (  1 X   6)
+PatientDelay.........................815 (  5 X 163)
+ElectiveUnscheduledPatients.........3850 (350 X  11)
+Total cost = 10011

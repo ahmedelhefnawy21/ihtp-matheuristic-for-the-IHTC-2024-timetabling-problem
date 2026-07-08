@@ -1,0 +1,13 @@
+\begin{table}[ht]\centering\small
+\caption{Cumulative ablation on representative instances (seed 1, so the best-of-5 headline objective can be marginally lower). Each stage is kept because it lowers cost: the PAS MIP gives the largest drop (admissions); descent, the CP-SAT LNS and the exact OT/NRA polish each still trim cost.}\label{tab:abl}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+instance & construct & +PAS & +ALNS & +descent & +LNS & +OT & +NRA & best-known\\
+\midrule
+i04 & 2\,833 & 2\,505 & 2\,188 & 2\,188 & 2\,022 & 2\,022 & 2\,021 & 1\,884\\
+i13 & 27\,081 & 18\,877 & 18\,877 & 18\,697 & 18\,085 & 18\,055 & 18\,020 & 17\,328\\
+i16 & -- & 12\,127 & 12\,127 & 12\,043 & 11\,533 & 11\,533 & 11\,532 & 10\,139\\
+i27 & 85\,614 & 75\,184 & 68\,084 & 66\,464 & 65\,003 & 64\,583 & 63\,896 & 51\,828\\
+\bottomrule
+\end{tabular}
+\end{table}

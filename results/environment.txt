@@ -1,0 +1,9 @@
+Computational environment (auto-captured by experiments.py):
+  machine     : Apple M5
+  CPU cores   : 10 (physical 10)
+  RAM         : 34.4 GB
+  OS          : macOS-26.5.2-arm64-arm-64bit
+  Python      : 3.12.13
+  solvers     : gurobipy 13.0.2, ortools 9.15.6755, numpy 2.5.1
+  parallelism : 10 processes; seeds [1, 2, 3, 4, 5]
+  wall-clock  : 20953.0 s total
