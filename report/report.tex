@@ -14,7 +14,7 @@
 \newcommand{\Hc}[1]{\textsf{H#1}}
 \newcommand{\anote}[1]{{\renewcommand{\thefootnote}{\fnsymbol{footnote}}\footnote[1]{#1}}}
 
-\title{\vspace{-1.2cm}\textbf{A Matheuristic for the Integrated Healthcare\\ Timetabling Problem (IHTC-2024)}}
+\title{\vspace{-1.2cm}\textbf{A Matheuristic for the Integrated Healthcare\\ Timetabling Problem (IHTC-2024)}\footnote{We pushed our entire solution into GitHub: \\ \url{https://github.com/ahmedelhefnawy21/ihtp-matheuristic-for-the-IHTC-2024-timetabling-problem}}}
 \author{Ahmed Elhefnawy \and Weiyi Shen Qiaoyan Zeng\\[2pt]
 \small Advanced Modeling and Optimization, Group Project, TUM, Summer Term 2026}
 \date{\vspace{-0.4cm}}
@@ -22,20 +22,6 @@
 \begin{document}
 \maketitle
 \vspace{-0.8cm}
-
-%\begin{abstract}\noindent
-%We solve the Integrated Healthcare Timetabling Problem (IHTP) of the IHTC-2024 competition. The
-%problem joins three hospital scheduling tasks: patient admission scheduling, surgical case
-%planning, and nurse-to-room assignment. Our method is a matheuristic. A constructive heuristic
-%and an Adaptive Large Neighborhood Search build and refine a plan, and three small
-%mixed-integer programs solve the parts that need to be exact: patient admission,
-%operating-theatre choice, and nurse assignment. We justify every design choice by the problem
-%structure, by the literature, and by our own ablation. On the 30 public instances the method is
-%feasible on all of them, with a total objective 7.8\% above the competition best-known values
-%(these are the best results the field has published, not proven optima). We come within 0.5\% of
-%best-known on 2 instances and within 3\% on 7. Every solution is checked by the official
-%validator, and every number in this report can be reproduced from the code.
-%\end{abstract}
 
 \section{Task 1: Problem understanding and model}
 
