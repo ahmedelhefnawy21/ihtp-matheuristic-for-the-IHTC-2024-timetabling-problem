@@ -89,7 +89,9 @@ $v_{n,r,s}$ & nurse $n$ covers room $r$ in shift $s$ (only for $n\in\mathcal N_s
 A single MIP over all four variable families, with the nurses included, is too large to solve for
 these instances. We therefore split the problem into an upper layer and a lower layer. This is
 the standard decomposition for the IHTP, and \citet{ihtc2024paper} report it among the strong
-entries to the competition. The upper layer sets the admission day, room, and theatre
+entries to the competition. These entries differ in which part leads the search: the method of
+\citet{garciatercero2026} is led by local-search neighborhoods, whereas ours is led by the exact
+admission MIP. The upper layer sets the admission day, room, and theatre
 (variables $x$, $y$, $z$). This fixes all hard constraints except nurse coverage, and it fixes the
 patient-side soft costs \Sc1, \Sc5, \Sc6, \Sc7, \Sc8. The lower layer assigns nurses (variable
 $v$), which fixes the coverage constraint \Hc8 and the nurse soft costs \Sc2, \Sc3, \Sc4. We solve
@@ -115,7 +117,7 @@ capacity, with bounded backtracking), and, if needed, a short ruin-and-repair ph
 
 \emph{PAS-MIP (the admission core).} This is the decisive stage, because the objective is dominated
 by unscheduled optional patients (\Sc8), and admitting more of them is a packing problem that local
-search cannot solve well but a MIP can. \citet{ceschia2011} study patient admission scheduling and derive
+search cannot solve well but a MIP can\footnote{Because admitting more optionals is a capacity-packing problem \citep{ceschia2011} where one admission needs many patients to move together, local search stalls in local optima while a MIP solves the whole packing exactly in one shot \citep{maniezzo2010}.}. \citet{ceschia2011} study patient admission scheduling and derive
 lower bounds for it by relaxation, and our admission model is the assignment form of that problem,
 specialised to this competition and matching the code that solves it. Using the admission variable $x_{p,d,r}$ (created only for
 feasible triples) and a per-room-day gender indicator $g_{r,\tau}$:
@@ -138,7 +140,7 @@ left to the OT-MIP, which keeps this model small.
 search, which repeatedly removes a part of the plan and rebuilds it a better way. The removal operators (random, worst cost, empty a day,
 empty a theatre, and the related removal of \citet{shaw1998}) each target one cost term. The repair
 operators are greedy insertion, regret-2 insertion (which inserts next the patient that would lose
-the most by waiting, a standard repair in this framework), and randomised greedy. Moves are accepted by the
+the most by waiting), and randomised greedy. Moves are accepted by the
 simulated-annealing rule of \citet{kirkpatrick1983}, which accepts some worse plans early and tightens later. Feasibility
 is kept by construction, so the only violation the search can create is an unadmitted mandatory
 patient, which we handle with a large penalty. A short true-cost descent then makes single room or
@@ -166,8 +168,7 @@ occupied room-shift (\Hc8). Overflow variables $o_{n,s}\ge 0$ model excess workl
 link $c_{e,n}\ge v_{n,r_e,s}$ counts distinct nurses per patient, so $\Sc3=\sum_{e,n}c_{e,n}$. The
 objective $W_2\Sc2+W_3\Sc3+W_4\Sc4$ is minimised over the whole horizon. The greedy nurse assignment
 is a feasible warm start, so this stage can only improve it. We give both of these models in full, with
-all their variables and constraints, in Appendix~\ref{app:models}, where the written form matches the code
-line for line; the description here covers their purpose and the costs they reduce.
+all their variables and constraints, in Appendix~\ref{app:models}, where the written form matches our implementation in Python; the description here covers their purpose and the costs they reduce.
 
 \paragraph{(d) Hard constraints and feasibility.}
 Feasibility rests on two things: the construction and the exact models keep every hard constraint,
@@ -278,6 +279,10 @@ does not see the nurse cost that its choices create, so it admits patients who a
 staff. Our lower \Sc8 is partly bought with higher nurse cost. This is the honest cost of
 decomposing a coupled problem. The clearest next steps are to price an estimate of nurse cost into
 the admission objective, and to loop the admission and nurse models rather than run them once.
+\citet{garciatercero2026}, a competition finalist, reach the same conclusion: they identify the link
+between patient placement and nurse cost as an open problem, and they report that a single model
+over both admission and nurses was too slow to help. The two steps we propose keep the models
+separate, which is consistent with that finding.
 Longer budgets and more seeds help only slightly (see the seed spread in Appendix~\ref{app:dist}),
 which is consistent with the limit being the model coupling and not compute.
 
@@ -300,8 +305,7 @@ valid lower bound on the true optimum, which is a standard relaxation argument i
 (Appendix~\ref{app:bounds}): the true optimum lies between the bound and our objective. The bound is
 loose, because it ignores the nurse and age-mix costs, so both our certified gap (57\%) and the
 best-known's own certified gap (46\%) are large and track each other across instances. This tells us
-the looseness is mostly in the bound. Adding the nurse terms to the bound is the natural way to make
-it sharp.
+the looseness is mostly in the bound. 
 
 \paragraph{Seed robustness.} Across the five seeds the objective is stable on the small instances
 (a standard deviation of a few units) and spreads on the hard ones (up to about 1300 on i17). Best
@@ -361,6 +365,12 @@ Local search and lower bounds for the patient admission scheduling problem.
 Fawcett, C., \& Hoos, H.~H. (2016).
 Analysing differences between algorithm configurations through ablation.
 \emph{Journal of Heuristics, 22}(4), 431-458.
+
+\bibitem[Garcia Tercero et~al.(2026)]{garciatercero2026}
+Garcia~Tercero, L., Van~Bulck, D., Devriesere, K., Bakker, S., \& Goossens, D. (2026).
+A multi-neighborhood hybrid approach for the integrated healthcare timetabling competition 2024.
+\emph{Computers \& Operations Research, 191}, Article~107453.
+\url{https://doi.org/10.1016/j.cor.2026.107453}
 
 \bibitem[Glover(1996)]{glover1996}
 Glover, F. (1996).
@@ -449,7 +459,8 @@ The greedy nurse assignment is a feasible warm start for both models.
 \section{Seed distribution (five fixed seeds)}\label{app:dist}
 For each instance: the number of feasible seeds, the best, mean, worst, and standard deviation of
 the objective, and the best-of-five gap to best-known. Each seed is deterministic, so this table
-reproduces on the same solver versions.
+reproduces on the same solver versions. The full per-seed objective and runtime for every instance
+are in \texttt{results/seed\_runs.csv} in our GitHub repo.
 \input{seed_distribution.tex}
 
 \section{Component-level cost breakdown}\label{app:comp}
