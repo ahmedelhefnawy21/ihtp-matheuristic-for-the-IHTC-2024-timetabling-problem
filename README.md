@@ -83,7 +83,7 @@ THIS_REPO/
 ├── report/
 │   ├── report.pdf             the write-up: model, method, results
 │   ├── report.tex             its source
-│   └── make_tables.py, make_ablation.py   report tables, rebuilt from results/
+│   └── make_tables.py, make_ablation.py, make_admissions.py   report tables, rebuilt from results/
 │
 └── results/                   run.sh output: solutions, validator logs, CSVs
 ```

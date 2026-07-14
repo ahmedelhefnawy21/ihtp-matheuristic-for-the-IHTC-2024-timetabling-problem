@@ -197,10 +197,22 @@ def main():
     n_beat = sum(1 for g in gaps if g < 0.0)             # strictly better
 
     # Task 3 results table: all 30 instances, one row each, with feasibility and a short comment.
-    comments = {"i06": "within 0.5\\% of best-known", "i11": "within 0.5\\% of best-known",
-                "i27": "largest instance (493 patients)", "i17": "worst gap; nurse layer"}
+    # per-instance comments computed from the data so a stale gap cannot mislabel a row
+    worst_inst = max(rows, key=lambda r: float(r["gap_pct"]) if r["gap_pct"] else float("-inf"))["instance"]
+    comments = {}
+    for _r in rows:
+        _tags = []
+        _g = float(_r["gap_pct"]) if _r["gap_pct"] else None
+        if _g is not None and 0.0 <= _g <= 0.5:
+            _tags.append("within 0.5\\% of best-known")
+        if _r["instance"] == worst_inst:
+            _tags.append("worst gap")
+        if _r["instance"] == "i27":
+            _tags.append("largest (493 patients)")
+        if _tags:
+            comments[_r["instance"]] = "; ".join(_tags)
     n3 = sum(1 for g in gaps if g <= 3.0)
-    lines = [r"\begin{center}\footnotesize",
+    lines = [r"\begin{center}\small",
              r"\begin{tabular}{@{}l l r r r r p{3.0cm}@{}}",
              r"\toprule",
              r"instance & feasible & objective & best-known & gap\% & runtime (s) & comment\\",
