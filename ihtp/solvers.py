@@ -1,7 +1,9 @@
-"""Solver backend for the exact post-processing models.
+"""Solver backend settings for the exact models.
 
-Exact sub-models run on Gurobi (default, licensed here), falling back to OR-Tools
-CP-SAT when there's no Gurobi license on the machine it will run on. Same code path targets either via a thin wrapper.
+The exact sub-models (PAS, OT, NRA, and the lower bound) run on Gurobi and
+require a license. OR-Tools CP-SAT serves the LNS re-pack stage only
+(exact_lns.py). The helpers here hold the deterministic solver settings
+(threads, seed, work limits) and the availability checks.
 """
 
 from __future__ import annotations

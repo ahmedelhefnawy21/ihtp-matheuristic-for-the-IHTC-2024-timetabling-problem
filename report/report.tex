@@ -7,6 +7,8 @@
 \usepackage[round,authoryear]{natbib}
 \usepackage[hidelinks]{hyperref}
 \usepackage{caption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \setlist{nosep,leftmargin=1.4em}
 \captionsetup{font=small}
 \setlength{\emergencystretch}{2em}
@@ -14,35 +16,46 @@
 \newcommand{\Hc}[1]{\textsf{H#1}}
 \newcommand{\anote}[1]{\footnote{#1}}
 
-\title{\vspace{-1.2cm}\textbf{A Matheuristic for the Integrated Healthcare\\ Timetabling Problem (IHTC-2024)}\footnote{We pushed our entire solution into GitHub: \\ \url{https://github.com/ahmedelhefnawy21/ihtp-matheuristic-for-the-IHTC-2024-timetabling-problem}}}
-\author{Ahmed Elhefnawy \and Weiyi Shen \and Qiaoyan Zeng\\[2pt]
-	\small Advanced Modeling and Optimization, Group Project, TUM, Summer Term 2026}
-\date{\vspace{-0.4cm}}
-
 \begin{document}
-	\maketitle
-	\vspace{-0.8cm}
 	
-	\section{Task 1: Problem understanding and model}
+	\hypersetup{pageanchor=false}
+	\begin{titlepage}
+		\centering
+		\vspace*{4.5cm}
+		{\LARGE\textbf{A Matheuristic for the Integrated Healthcare\\[4pt] Timetabling Problem (IHTC-2024)}\par}
+		\vspace{1.6cm}
+		{\large Ahmed Elhefnawy \qquad Weiyi Shen \qquad Qiaoyan Zeng\par}
+		\vspace{0.8cm}
+		{Advanced Modeling and Optimization, Group Project\\ Technical University of Munich, Summer Term 2026\par}
+		\vfill
+		\begin{flushleft}
+			{\small The complete implementation is available at\\
+			{\footnotesize\url{https://github.com/ahmedelhefnawy21/ihtp-matheuristic-for-the-IHTC-2024-timetabling-problem}}\par}
+		\end{flushleft}
+	\end{titlepage}
+	\pagestyle{empty}
+	\tableofcontents
+	\thispagestyle{empty}
+	\newpage
+	\pagestyle{plain}
+	\hypersetup{pageanchor=true}
+	\pagenumbering{arabic}
 	
-	\paragraph{(a) The decision problem, in our own words.}
-	A hospital plans a timetable over a horizon of $D\in\{14,21,28\}$ days. Each day has three shifts:
+	\section{Problem Description}\label{sec:problem}
+
+	\paragraph{The decision problem, in our own words.}
+	A hospital plans a timetable over a horizon of $D$ days ($D\in\{14,21,28\}$ in the public instances). Each day has three shifts:
 	early, late, and night. The input describes patients waiting for surgery, occupants already in the
 	hospital (with fixed rooms and stays), rooms, nurses, surgeons, and operating theatres (OTs). For
 	each admitted patient, the hospital chooses an admission day, a room that is kept for the whole
-	stay, and an OT for the surgery, which takes place on the admission day. For every room that holds
-	a patient in a given shift, the hospital assigns exactly one on-duty nurse. The IHTP, defined in the
-	competition rules of \citet{ihtc2024spec}, is the joint form of three classic subproblems that share
-	the same beds, staff, and theatres: patient admission scheduling (PAS), surgical case planning (SCP),
-	and nurse-to-room assignment (NRA).
+	stay, and an OT for the surgery. The surgery takes place on the admission day. For every room that holds
+	a patient or an occupant in a given shift, the hospital assigns exactly one on-duty nurse. The competition rules of \citet{ihtc2024spec} define the IHTP. It joins three classic subproblems \citep{ceschia2011,cardoen2010,burke2004} that share the same beds, staff, and theatres. These are patient admission scheduling (PAS), surgical case planning (SCP), and nurse-to-room assignment (NRA).
 	Some patients are mandatory and must be admitted within a time window. Others are optional and may
-	be postponed. A plan is feasible when it meets eight hard constraints (\Hc1 to \Hc8, listed in part (d)). Among feasible plans, the goal is to minimize a weighted sum of eight soft costs (\Sc1 to
-	\Sc8, listed in part (e)).
+	be postponed. A plan is feasible when it meets the eight hard constraints \Hc1 to \Hc8. Among feasible plans, the goal is to minimize a weighted sum of the eight soft costs \Sc1 to \Sc8. Section~\ref{sec:approach} lists both.
 	
-	\paragraph{(b) Sets, parameters, and decision variables.}
-	The tables below list the notation. The decision variables are the standard binary form of a
-	scheduling model. We keep the room and the admission day in one variable ($x$) because a room is
-	held for the whole stay, and we keep the theatre in a separate variable ($y$) because it is used
+	\paragraph{Sets, parameters, and decision variables.}
+	The tables below list the notation. The decision variables are binary, the standard way to write an assignment model \citep{wolsey1998}. We keep the room and the admission day in one variable ($x$) because a room is
+	held for the whole stay. The theatre is kept in a separate variable ($y$) because it is used
 	only on the admission day.
 	
 	\begin{center}\small
@@ -66,7 +79,7 @@
 			$\mathrm{cap}_r$ & beds in room $r$\\
 			$A_{t,d}$, $T^{\mathrm{surg}}_{u,d}$ & daily minute budgets of theatre $t$ and surgeon $u$ ($0=$ unavailable)\\
 			$\sigma_n$, $L_{n,s}$ & nurse skill level and shift maximum load\\
-			$\rho_p$, $\lambda_p$, $\ell_p$ & release day, last admissible day ($=$ due day if mandatory), length of stay\\
+			$\rho_p$, $\lambda_p$, $\ell_p$ & release day, last admissible day ($=$ due day if mandatory, $D{-}1$ otherwise), length of stay\\
 			$\delta_p$, $u_p$, $g_p$, $\mathrm{age}_p$ & surgery duration, surgeon, gender, age-group index of $p$\\
 			$w_{p,j}$, $\mathrm{req}_{p,j}$ & workload and required skill of $p$ at stay-shift $j=0,\dots,3\ell_p{-}1$\\
 			$\mathrm{occ}^{A}_{r,d},\mathrm{occ}^{B}_{r,d}$ & occupants of gender A / gender B present in room $r$ on day $d$\\
@@ -88,21 +101,19 @@
 		\end{tabular}
 	\end{center}
 	
-	\paragraph{(c) The model and the solution approach.}
-	A single MIP over all four variable families, including the nurse variables, is too large to solve for
-	these instances. We therefore split the problem into an upper layer and a lower layer. This is
+	\section{Solution Approach}\label{sec:approach}
+
+	\paragraph{Decomposition: how and why we split the problem.}
+	A single MIP over all four variable families, including the nurse variables, is too large to solve within our budgets. Even the admission-only subset exhausts its work limit on the largest instances. We count the variables of Section~\ref{sec:problem} from the instance sizes. The binaries alone come to about $4\times10^4$ on a median instance and $4\times10^5$ on the largest. We therefore split the problem into an upper layer and a lower layer. This is
 	the standard decomposition for the IHTP, and \citet{ihtc2024paper} report it among the strong
-	entries to the competition. These entries differ in which part leads the search: the method of
-	\citet{garciatercero2026} is led by local-search neighborhoods, whereas ours is led by the exact
-	admission MIP. The upper layer sets the admission day, room, and theatre
+	entries to the competition. These entries differ in which part leads the search. The method of \citet{garciatercero2026} is led by local-search neighborhoods. Ours is led by the exact admission MIP, because the admission terms dominate the objective and an exact model packs patients in well (Section~\ref{sec:approach}). The upper layer sets the admission day, room, and theatre
 	(variables $x$, $y$, $z$). This fixes all hard constraints except nurse coverage, and it fixes the
 	patient-side soft costs \Sc1, \Sc5, \Sc6, \Sc7, \Sc8. The lower layer assigns nurses (variable
 	$v$), which fixes the coverage constraint \Hc8 and the nurse soft costs \Sc2, \Sc3, \Sc4. We solve
 	the two layers with the following pipeline. The pipeline pairs a heuristic search with exact
-	mixed-integer programs, which is the matheuristic approach surveyed by \citet{maniezzo2010}. Each stage is
-	present because our ablation (\S3) adds the stages one at a time in the pipeline's
-	fixed order and keeps each only where it lowers the overall cost, dropping anything that did not help.
-	\[\small
+	mixed-integer programs, which is the matheuristic approach surveyed by \citet{maniezzo2010}. Each stage is present because the ablation in Section~\ref{sec:discussion} shows that adding it lowers the overall cost. Anything that did not help was dropped. No component is included just to look advanced. Each is kept only if it brings a measured improvement, and otherwise it stays out (one candidate that
+	failed this test was not adopted, Appendix~\ref{app:pricing}).
+	\[
 	\text{construct} \rightarrow \underbrace{\text{PAS-MIP}}_{\text{admission}}
 	\rightarrow \underbrace{\text{ALNS}}_{\text{refine}}
 	\rightarrow \underbrace{\text{descent}}_{\text{true cost}}
@@ -111,16 +122,11 @@
 	\rightarrow \underbrace{\text{NRA-MIP}}_{\Sc2,\Sc3,\Sc4}.
 	\]
 	
-	\emph{Construction.} We quickly built a first feasible plan. Patients are inserted first
-	(mandatory before optional; then tighter admission window, longer surgery, and stay first), each
-	into its cheapest feasible day, room, and theatre. An optional patient is admitted only if its cost
-	is below the penalty $W_8$ for leaving it out. A greedy order can fill a surgeon's schedule and leave a mandatory patient unplaced, so we repair \Hc5 with ejection chains, the compound-move idea of \citet{glover1996} (we move the blocking patients to free
-	capacity, with bounded backtracking), and, if needed, a short ruin-and-repair phase in the sense of the ruin-and-recreate principle of \citet{schrimpf2000}.
+	\emph{Construction.} We quickly build a first plan. Patients are inserted in order: mandatory before optional, then tighter admission window, longer surgery, and longer stay first. The most constrained patients are placed while resources are least committed. Each takes its cheapest feasible day, room, and theatre. An optional patient is admitted only if its cost
+	is below the penalty $W_8$ for leaving it out. A greedy order can fill a surgeon's schedule and leave a mandatory patient unplaced. We therefore repair \Hc5 with ejection chains, the compound-move idea of \citet{glover1996}. We move the blocking patients to free capacity, backtracking at most three ejections deep. We also try up to three cheap randomized restarts from slightly varied insertion orders (early stop once one is feasible; best plan kept). On the one instance in the ablation where construction ends infeasible (i16), the PAS-MIP restores feasibility through its mandatory-equality constraints (the scored +PAS cell in Table~\ref{tab:abl}). The ALNS opening feasibility phase remains a backup. It is a ruin-and-recreate repair in the sense of \citet{schrimpf2000}, emptying and rebuilding the congested region around an unplaced mandatory patient. The construction only has to give a usable starting plan: the construct column of Table~\ref{tab:abl} shows how far it sits from best-known before the optimizing stages run.
 	
 	\emph{PAS-MIP (the admission core).} This is the decisive stage, because the objective is dominated
-	by unscheduled optional patients (\Sc8), and admitting more of them is a packing problem that local
-	search cannot solve well, but an MIP can\footnote{Because admitting more optionals is a capacity-packing problem \citep{ceschia2011} where one admission needs many patients to move together, local search stalls in local optima while a single MIP optimizes the whole admission packing jointly \citep{maniezzo2010}.}. \citet{ceschia2011} studied patient admission scheduling and derived
-	lower bounds for it by relaxation, and our admission model is the assignment form of that problem, matching the code that solves it.\footnote{The one difference: our code computes unscheduled optionals directly as $1-\sum_{r,d}x_{p,d,r}$ rather than with the explicit variable $z_p$; the two are equivalent.} Using the admission variable $x_{p,d,r}$ (created only for
+	by unscheduled optional patients (\Sc8). Admitting more of them is a packing problem that local search cannot solve well, but an MIP can\footnote{One admission can require many patients to move together \citep{ceschia2011}. A MIP weighs those combinations jointly, where local search stalls \citep{maniezzo2010}.}. Our admission model is the assignment form of the patient admission scheduling problem studied by \citet{ceschia2011}, matching the code that solves it.\footnote{Our code has one difference. It computes unscheduled optionals directly as $1-\sum_{r,d}x_{p,d,r}$ rather than with the explicit variable $z_p$. The two are equivalent. On instances with more than 300 patients the code also clips each optional patient's admission-day window to the eight days after release (mandatory windows are untouched). This pruning keeps the model small at little cost, since the delay penalty \Sc7 already favors early admission.} The model uses the admission variable $x_{p,d,r}$ (created only for
 	feasible triples) and a per-room-day gender indicator $g_{r,d}$:
 	{\small
 		\begin{align*}
@@ -131,205 +137,234 @@
 			& \textstyle\sum_{p\in\mathcal P^{A}}\sum_{d'\le d<d'+\ell_p} x_{p,d',r}+\mathrm{occ}^{A}_{r,d}\le \mathrm{cap}_r(1{-}g_{r,d}) && \text{(\Hc1, \Hc7, gender A)}\\
 			& \textstyle\sum_{p\in\mathcal P^{B}}\sum_{d'\le d<d'+\ell_p} x_{p,d',r}+\mathrm{occ}^{B}_{r,d}\le \mathrm{cap}_r\,g_{r,d} && \text{(\Hc1, \Hc7, gender B)}\\
 			& \textstyle\sum_{p:\,u_p=u}\delta_p\!\sum_r x_{p,d,r}\le T^{\mathrm{surg}}_{u,d},\quad
-			\sum_{p}\delta_p\!\sum_r x_{p,d,r}\le \textstyle\sum_t A_{t,d} && \text{(\Hc3, \Hc4)}
+			\sum_{p}\delta_p\!\sum_r x_{p,d,r}\le \textstyle\sum_t A_{t,d} && \text{(\Hc3; \Hc4 in aggregate)}
 	\end{align*}}%
 	The two gender constraints per room-day force every room-day to hold at most $\mathrm{cap}_r$
-	patients of one gender. Rooms and gender are handled exactly here. Theatre packing (\Sc5, \Sc6) is
-	left to the OT-MIP, which keeps this model small.
+	patients of one gender. Rooms and gender are handled exactly here. Theatre packing (\Sc5, \Sc6) is left to the OT-MIP, and the small-weight age mix (\Sc1) to the room choice in the surrogate and to the descent. This keeps the model small. A greedy pass then completes the plan before the feasibility check that decides adoption: cheapest feasible theatre per surgery, nurses filled greedily. The model bounds \Hc4 only in aggregate, so a patient's slot can fail a per-theatre check. That rare patient is re-placed in the cheapest feasible slot. In the
+	ablation this stage contributes the single largest drop (Table~\ref{tab:abl}, +PAS column).
 	
-	\emph{ALNS (Adaptive Large Neighborhood Search).} \citet{ropke2006} proposed adaptive large neighborhood
-	search, which repeatedly removes a part of the plan and rebuilds it in a better way. The removal operators (random, worst cost, empty a day,
-	empty a theatre, and the related removal of \citet{shaw1998}) each target one cost term. The repair
-	operators are greedy insertion, regret-2 insertion (which prioritizes the patient that would lose
-	the most by waiting), and randomized greedy. Moves are accepted according to
-	the simulated-annealing rule of \citet{kirkpatrick1983}, which accepts some worse plans early and tightens later. Feasibility
-	is maintained by construction, so the only violation the search can create is an unadmitted mandatory
-	patient, which we handle with a large penalty. A short true-cost descent then makes single room or
-	day moves, kept only when the full objective drops. It cleans the secondary costs (\Sc1 age mix and the nurse terms), since it re-scores the whole plan.
+	\emph{ALNS (Adaptive Large Neighborhood Search).} Adaptive large neighborhood search \citep{ropke2006} repeatedly removes part of the plan\anote{The random, worst-cost, and related removals draw their size uniformly between one and one seventh of the admitted patients, at most 25. That size is large enough for joint moves and cheap to repair. The day and theatre removals clear their whole target. Partial clearing would leave the packing in place.} and
+	rebuilds it better; its purpose here is to find improvements that no single-patient move can reach, when several patients must shift together. Our five removal operators each target one weakness. \emph{Random} removal diversifies broadly and re-offers a couple of postponed optionals, which repair may admit. \emph{Worst-cost} removal pulls out the most delayed patients (\Sc7). The \emph{empty-a-day} move clears one admission day so its capacity can be re-packed. The \emph{empty-a-theatre} move empties one theatre on one day, trying to close it (\Sc5). The \emph{related} removal of \citet{shaw1998} extracts the patients most related to a randomly chosen seed (same surgeon, overlapping stay, shared room) so they can be re-packed jointly. Our three repair operators re-insert what was removed, mandatory patients always first. \emph{Greedy} insertion (cheapest feasible slot) is the fast baseline. \emph{Regret-2} insertion places first the patient that would lose the most by waiting (the widest cost gap between its best and second-best feasible placement). \emph{Randomized greedy} samples among each patient's few near-best slots, so the same removal is not always rebuilt the same way. Operators are drawn with probabilities adapted to their recent success, the adaptive scheme that gives the method its name. Each draw earns a graded reward, largest for a new best plan. Every 100 iterations the weights are smoothed toward each operator's average reward. Moves are accepted by the simulated-annealing rule of \citet{kirkpatrick1983}: a worse plan is accepted with a probability that shrinks as the search cools. This lets the search escape local optima early and settle later. The starting temperature comes from thirty probe moves on the instance itself, set so we accept about forty percent of worsening moves at the start; it then decays geometrically for
+	the rest of the run. Feasibility is maintained by construction, so the only violation the search can create is an unadmitted mandatory patient, which we handle with a large penalty. At periodic checkpoints (every 1{,}500
+	iterations) the search also runs a deterministic admission sweep: every postponed optional whose best slot costs less than $W_8$ is
+	inserted. For each one with no feasible slot, a bounded ejection chain is tried. It is kept only if the surrogate cost drops. It gives the search a cheap version of the packing the exact models do. The ALNS has two measured roles. It reduces the secondary costs the admission model does not optimize. Its sweep recovers admissions where the time-limited PAS-MIP left optionals unadmitted. In the +ALNS column of Table~\ref{tab:abl}, the large i27 drop is consistent with recovered admissions (i27 prices each admission at $W_8=500$, Table~\ref{tab:audit}). The column is neutral where its targets are already minimal.
+	
+	\emph{Descent (true-cost local search).} The ALNS loop scores the fast surrogate, so a short
+	descent follows whose accept test is the full objective. For each admitted patient it tries every feasible day, including its current one, each with the
+	surrogate-cheapest room and theatre for that day; only the exact current placement is skipped. Only one candidate per day is tried, since each candidate requires a complete
+	rescore, with the nurses re-assigned, and the room and theatre choices interact only through the day. The descent takes the
+	first relocation that improves and keeps a move only when the complete, nurse-staffed score
+	strictly drops. Its purpose is to reduce the nurse terms the surrogate does not price, plus the age mix (\Sc1) left over; its contribution is the +descent column of Table~\ref{tab:abl}.
 	
 	\emph{CP-SAT LNS (the capacity-creating step).} The single PAS-MIP times out on the largest
-	instances, and no small move can re-pack a full schedule to fit one more optional patient. We
+	instances (the drop from the +descent to the +LNS column of Table~\ref{tab:abl} shows what the timeout leaves unrecovered). No small move can re-pack a full schedule to fit one more optional patient. We
 	therefore free every still-unscheduled optional patient, plus everyone admitted inside a random
-	window of days, and re-pack that window with an exact model. This is a large neighborhood search, the
+	window of days, and re-pack that window with an exact model. The freed set is capped near 110 patients, and the window width scales with instance size. When the set still overflows, admitted optionals are randomly subsampled, never the unscheduled or mandatory patients. This is a large neighborhood search, the
 	destroy-and-rebuild scheme surveyed by \citet{pisinger2010}, with an exact re-pack in place of a
 	heuristic one. The frozen patients' resource use is subtracted as
 	residual capacity, so the small model stays valid. We solve it with CP-SAT, the constraint solver
-	in OR-Tools, whose reified constraints model the gender, open-theatre, and surgeon-transfer
-	indicators directly. Because admitting patients raises nurse cost, a step is kept only after the
-	nurses are re-optimized and only if the full validated objective strictly improves. The search is
-	therefore monotone. In our experiments this stage closes most of the residual admission gap.
+	in OR-Tools. Its reified constraints (constraints switched on and off by a boolean variable) model the
+	gender, open-theatre, and surgeon-transfer indicators directly, and its deterministic time budget keeps the many small repeated solves reproducible. Admissions raise nurse cost, so each round bundles several re-packs, screened on the costs the re-pack model itself counts (\Sc5--\Sc8). The nurse re-solve then runs once per round rather than once per re-pack.
+	A round is kept only after the nurses are re-optimized and only if the full objective strictly
+	improves, so the stage is monotone. We run four rounds, since profiling found little gain past four (the budget note in \texttt{ihtp/experiments.py}). The cap keeps each re-pack model near one size, so the fixed per-solve budget fits every round. In our experiments this stage lowers the cost in every row of Table~\ref{tab:abl} (+LNS column); it is where the last hard-to-place optional patients are admitted.
 	
-	\emph{OT-MIP.} Operating-theatre scheduling is a research field in its own right, reviewed by \citet{cardoen2010}. With days and rooms fixed, each day is a small independent assignment problem: choose
-	the theatre $y_{p,d,t}$ for each surgery to minimize open theatres (\Sc5) and surgeon transfers
-	(\Sc6) subject to \Hc4. Each day has a few surgeries, so this solves to optimality in milliseconds.
+	\emph{OT-MIP.} Operating-theatre scheduling is its own research field, reviewed by \citet{cardoen2010}. With days and rooms fixed, each day is a small independent assignment problem. We pick the theatre $y_{p,d,t}$ for each surgery to minimize open theatres (\Sc5) and surgeon transfers (\Sc6) under \Hc4. Each day has a few surgeries, so each of these models is tiny and runs under a fixed deterministic per-day work budget. The stage's small remaining gain is the +OT column of Table~\ref{tab:abl}.
 	
-	\emph{NRA-MIP.} Nurse-to-room assignment is a nurse rostering problem, the subject of the survey by \citet{burke2004}. With the layout fixed, the nurse variable $v_{n,r,s}$ places one on-duty nurse per
+	\emph{NRA-MIP.} Nurse-to-room assignment is the staffing side of the plan, closest to the nurse rostering problems surveyed by \citet{burke2004}. The roster here is fixed input, and the task is to assign on-duty nurses to rooms. With the layout fixed, the nurse variable $v_{n,r,s}$ places one on-duty nurse per
 	occupied room-shift (\Hc8). Overflow variables $o_{n,s}\ge 0$ model excess workload (\Sc4), and the
 	link $c_{e,n}\ge v_{n,r_e,s}$ counts distinct nurses per patient, so $\Sc3=\sum_{e,n}c_{e,n}$. The
-	objective $W_2\Sc2+W_3\Sc3+W_4\Sc4$ is minimized over the whole horizon. The greedy nurse assignment
-	is a feasible warm start, so this stage can only improve it. We give both of these models in full, with
-	all their variables and constraints, in Appendix~\ref{app:models}, where the written form matches our implementation in Python; the description here covers their purpose and the costs they reduce.
-	
-	\paragraph{(d) Hard constraints and feasibility.}
+	objective $W_2\Sc2+W_3\Sc3+W_4\Sc4$ is minimized over the whole horizon, since continuity (\Sc3) couples every shift of a patient's stay; no shift-by-shift solve could trade this off. The greedy nurse assignment is a feasible warm start: a chronological sweep, so a patient's earlier nurse can be picked again for continuity. It
+	staffs the rooms with the highest required skill first, while the skilled nurses are still
+	lightly loaded, and picks each nurse by marginal cost under the true weights. The sweep, however,
+	fixes each shift in turn and cannot look ahead, so this exact solve recovers the skill,
+	continuity, and workload cost the sweep misses (Table~\ref{tab:abl}, +NRA column). Both models appear in full in Appendix~\ref{app:models}.
+
+	\paragraph{How the components interact.}
+	Three mechanisms tie the stages into one method. First, \emph{warm starts}: every exact model begins from the current plan. The construction seeds the PAS-MIP, the incumbent theatre placement seeds the OT-MIP, and the greedy nurse assignment seeds the NRA-MIP. The current placements enter the CP-SAT re-pack as hints. Each Gurobi solve therefore starts from a known solution it can only improve in its own objective. The round check described next covers the re-pack. Second, a \emph{keep-best incumbent}: from the descent onward, a stage's output replaces the incumbent only when the full evaluated objective strictly improves. The capacity-creating LNS and the final exact solves can never make the reported solution worse. The two stages before them, the PAS-MIP and the ALNS, hand their result forward directly (PAS accepted when feasible, ALNS feasible by construction). They re-decide the dominant admission terms rather than refine a fixed plan. Third, a \emph{two-speed objective}: the heuristic's inner loops and the admission models score a fast upper-layer surrogate that excludes the nurse terms. The incumbent is updated at the ALNS checkpoints, each LNS round, the descent, and the final exact solves. Each update re-scores the full objective with the nurses re-solved, greedily at the checkpoints and in the descent, and exactly thereafter. The surrogate makes many iterations possible, and the full-objective checks keep the reported cost
+	accurate. Algorithm~\ref{alg:pipeline} summarizes one full run.
+
+	\begin{algorithm}[t]
+		\caption{One run of the pipeline: $S$ is built once (line 1), then improved stage by stage;
+		each \textsc{small-caps} call is a stage of Section~\ref{sec:approach}. $z(S)$ is the full
+		objective, all eight soft costs with the nurses re-assigned before scoring (greedily, except
+		at the \textsc{Nra-Mip} calls, which are exact). Lines 2--5 re-decide the admissions and
+		hand their result forward; from line 6 on a change is kept only if it strictly lowers $z$,
+		so the plan never gets worse. Every stopping rule is an iteration, round, or work budget,
+		never wall-clock, so a fixed seed reproduces the run (same platform and solver versions;
+		Section~\ref{sec:results}).}\label{alg:pipeline}
+		\begin{algorithmic}[1]
+			\Require an instance and a seed
+			\Ensure a feasible plan; every plan we report is additionally re-checked by the competition's official validator
+			\State $S \gets \textsc{Construct}$ \Comment{a fast greedy plan; hardest-to-place patients inserted first}
+			\State $P \gets \textsc{Pas-Mip}(\text{warm start }S)$ \Comment{exact model re-decides every admission, day, and room}
+			\State fill $P$'s theatres and nurses greedily \Comment{the admission model leaves both to this quick pass}
+			\State \textbf{if} $P$ is feasible \textbf{then} $S \gets P$ \Comment{adopted outright: admissions carry most of the objective}
+			\State $S \gets \textsc{Alns}(S)$ \Comment{reshuffles days, rooms, and theatres, with periodic admission sweeps; worse plans accepted early on}
+			\State $S' \gets \textsc{Descent}(S)$; \textbf{if} $z(S')<z(S)$ \textbf{then} $S \gets S'$ \Comment{one-patient moves, judged on the full score}
+			\For{$4$ rounds} \Comment{the capacity-creating step; each round bundles several re-packs, each on a fresh random window}
+				\State $S' \gets \textsc{RepackSlice}(S)$ \Comment{free the not-yet-admitted optionals $+$ a day window, capped near 110 freed; CP-SAT re-solves the slice, the rest stays frozen}
+				\State $S' \gets \textsc{Nra-Mip}(S')$; \textbf{if} $z(S')<z(S)$ \textbf{then} $S \gets S'$ \Comment{exact nurse assignment; keep the round only if cheaper once staffed}
+			\EndFor
+			\State $S' \gets \textsc{Nra-Mip}(\textsc{Ot-Mip}(S))$; \textbf{if} $z(S')<z(S)$ \textbf{then} $S \gets S'$ \Comment{final clean-up: exact theatre assignment, then exact nurse assignment}
+			\State \Return $S$
+		\end{algorithmic}
+	\end{algorithm}
+
+	\paragraph{Hard constraints and feasibility.}
 	Feasibility rests on two things: the construction and the exact models keep every hard constraint,
 	and the official validator confirms it. \Hc2 (compatible rooms) and \Hc6 (admission window) are held by
 	construction, because we only ever create a variable $x_{p,d,r}$ for a legal day and a compatible
 	room. \Hc1 (no gender mix) and \Hc7 (room capacity) are enforced exactly by the two gender
-	constraints of the PAS-MIP, and are re-checked on every heuristic move. \Hc3 (surgeon time) is enforced by the PAS-MIP.
+	constraints of the PAS-MIP, and are re-checked on every heuristic move. \Hc3 (surgeon time) is enforced by the PAS-MIP and re-checked on every heuristic placement.
 	\Hc4 (theatre time) is enforced by the PAS-MIP only in aggregate (total surgery duration per day
-	within total theatre capacity); the exact per-theatre bound is enforced when theatres are assigned,
-	checked on every placement and move and re-optimized within capacity by the OT-MIP, and confirmed by
-	the official validator on every final solution. \Hc5 (all
+	within total theatre capacity). The exact per-theatre bound is enforced when theatres are assigned, and checked on every placement and move. The OT-MIP re-optimizes it within capacity, and the official validator confirms it on every final solution. \Hc5 (all
 	mandatory admitted) is secured by the construction, the ejection repair, and the equality
 	constraint in the PAS-MIP. \Hc8 (nurse presence: an on-duty nurse covers every occupied room-shift)
 	is met by the greedy nurse assignment and the NRA-MIP, which chooses $v_{n,r,s}$ only among nurses on
 	duty in that shift. The official validator, our ground truth for feasibility, implements \Hc8 as two
 	checks: \texttt{UncoveredRoom} (every occupied room-shift has a nurse) and \texttt{NursePresence}
-	(the assigned nurse is on duty in the shift). We never claim a solution feasible on our own evaluator
-	alone: every reported solution is re-run through the official validator, and we report it as feasible
-	only when it reports zero violations.
+	(the assigned nurse is on duty in the shift). We never claim a solution feasible on our own evaluator alone. Every reported solution is re-run through the official validator. We report it as feasible only when that run shows zero violations.
 	
-	\paragraph{(e) Objective and soft constraints.}
-	We re-implemented the official objective in Python and pinned it to the validator with a golden
-	test (\S2), so the search optimizes the objective the competition measures. Each soft cost is reduced
+	\paragraph{Objective and soft constraints.}
+	We re-implemented the official objective in Python and checked it against the validator with a golden test. Our evaluator and the official validator score the same published solutions, and every component must match exactly (Section~\ref{sec:impl}). The search therefore optimizes the
+	objective the competition measures. Each soft cost is reduced
 	at the stage that controls it. Admission (PAS-MIP and CP-SAT LNS) reduces unscheduled patients
 	(\Sc8) and admission delay (\Sc7). The OT-MIP reduces open theatres (\Sc5) and surgeon transfers
 	(\Sc6). The NRA-MIP reduces under-skill (\Sc2), continuity of care (\Sc3), and excess workload
-	(\Sc4). The descent reduces the age mix (\Sc1). The weight $W_8$ on unscheduled patients is by far
-	the largest (150 to 500 across instances, against at most 50 for the others), so the objective is
-	driven mostly by how many patients are admitted. This is why the admission MIP is the decisive
-	stage.
+	(\Sc4). The descent reduces the age mix (\Sc1, the spread between the oldest and youngest age
+	groups sharing a room on a day). The weight $W_8$ on unscheduled patients is by far
+	the largest (150 to 500 across instances, against at most 50 for the others), so the objective is driven mostly by how many patients are admitted.
 	
-	\section{Task 2: Implementation}
-	
-	\paragraph{(a) Python implementation.}
-	The solver is a Python package (\texttt{ihtp/}) with one module per concern: instance parsing, a
-	solution model with incremental cost updates, a full objective evaluator, the constructive and ALNS
-	heuristics, the four exact models, and an experiment harness. The incremental model keeps running
+	\section{Implementation}\label{sec:impl}
+
+	\paragraph{Architecture.}
+	The solver is a Python package (\texttt{ihtp/}). Its modules are instance parsing, a solution model with incremental cost updates, a full objective evaluator, the constructive and ALNS heuristics, the four exact models, and the experiment scripts. The incremental model keeps running
 	totals of cost and capacity, so testing one move costs time proportional to what the move touches,
 	not to the whole instance. One command (\texttt{./run.sh}) builds the validator, runs the tests,
-	solves all instances, computes the lower bounds, and writes every result.
+	solves all instances, computes the certified lower bounds, and writes every result. Every number
+	and table in this report can therefore be rebuilt by running the code on a fresh copy of the
+	repository, with the recorded solver versions and licenses. The appendix experiments have their
+	own scripts under \texttt{extensions/}.
 	
-	\paragraph{(b) External solvers, libraries, and tools.}
-	We use \textbf{Gurobi 13.0.2} for the admission, theatre, and nurse MIPs and for the lower bound.
-	Gurobi is the only commercial solver we use, and it is used under an academic license, as permitted
+	\paragraph{Solvers, libraries, and tools.}
+	We use \textbf{Gurobi 13.0.2} for the admission, theatre, and nurse MIPs and for the lower bound. Its deterministic work-based stopping (\texttt{WorkLimit}) also underpins our reproducibility.
+	Gurobi is the only commercial solver we use, under an academic license, as permitted
 	by the assignment. We use the open-source \textbf{OR-Tools CP-SAT 9.15} for the capacity-creating
 	search, and \textbf{NumPy 2.5} for the data arrays. Feasibility is checked by the official
 	\textbf{IHTP\_Validator} \citep{ihtc2024site} (the C\texttt{++} program from the competition), which we compile from its
-	source. No other solver is used.
+	source.
 	
-	\paragraph{(c) Reading instances and writing solutions.}
+	\paragraph{Instance and solution formats.}
 	The program reads the official IHTC-2024 instance JSON files \citep{ihtc2024site} and writes the solution JSON in the
 	required schema (the admission day, room, and theatre per patient, and the nurse per occupied
-	room-shift). The required results CSV (one line per instance, \texttt{i01,<objective>}, or
-	\texttt{i01,infeasible}) is written by the harness.
+	room-shift). The required results CSV (one line per instance, \texttt{i01,<objective>}, or \texttt{i01,infeasible}) is written by the same scripts.
 	
-	\paragraph{(d) Validation.}
-	Our Python evaluator, which guides the search, matches the official validator component by component on the published i01 reference solution (zero violations, all eight soft costs, and total 3842), and on seven further reference solutions spanning the size range, where we check every hard and soft component. These are feasible published solutions, so this is an agreement test on valid states, not a proof of equivalence for every solution the search visits. It need not be: every solution we report is re-scored by the official validator binary, and we keep the validator's own objective value as the reported number, so our results never rely on the evaluator alone.
+	\paragraph{Validation.}
+	Our Python evaluator guides the search. It matches the official validator component by component (our golden test) on the published i01 reference solution (zero violations, all eight soft costs, and total 3842). It also matches on seven further reference solutions spanning the size range, where we check every hard and soft component. Since i01's reference solution has zero surgeon transfers and zero excess workload, these seven test the components and edge cases (near-horizon truncation, $\sim$500-patient instances) that i01 cannot. These are feasible published solutions, so this is an agreement test on valid states, not a proof of equivalence for every solution the search visits. It need not be: every solution we report is re-scored by the official validator binary, and we keep the validator's own objective value as the reported number.
 	
-	\paragraph{(e) Computational environment.}
-	The harness records the machine automatically (file \texttt{environment.txt}). The submitted run
+	\paragraph{Computational environment.}
+	Every run records the machine on its own, in the file \texttt{environment.txt}. Each run's results store the solver versions the objectives depend on, and the hardware the runtimes depend on. The submitted run
 	used an Apple M5 processor (10 cores), 34.4 GB of memory, and macOS 26.5.2 (arm64), with Python
-	3.12.13, Gurobi 13.0.2, OR-Tools 9.15.6755, and NumPy 2.5.1. The project sets no wall-clock time limit; each solver stops on a deterministic work budget. The full run (all 30 instances, five seeds each, across the ten cores) took about 5.8 hours (20{,}953 seconds) of wall-clock, for the solve and validation, with the certified bounds computed separately. The per-instance runtime in Table~\ref{tab:res} is the solver time summed over the five seeds; the 150 single-threaded runs share the ten cores, so these sum to about 58 hours, roughly ten times the wall-clock. Runtime depends on hardware, so these
-	numbers are stated for the machine above.
+	3.12.13, Gurobi 13.0.2, OR-Tools 9.15.6755, and NumPy 2.5.1. The full run (all 30 instances, five seeds each, across the ten cores) took about 5.8 hours (20{,}953 seconds) of wall-clock, for the solve and validation. The certified bounds were computed in a separate step, not included in this figure. The per-instance runtime in Table~\ref{tab:res} is the solver time summed over the five seeds. The 150 single-threaded runs share the ten cores, so their solver times sum to about 58 hours, roughly ten times the wall-clock. Each solver gets one thread. Several solver threads working together can return a different solution under a fixed budget, which would break fixed-seed reproducibility. We fill the cores by running instances in parallel instead.
 	
-	\section{Task 3: Computational results and analysis}
-	
-	\paragraph{(a)-(c) Setup, feasibility, and objectives.}
-	We ran all 30 public instances. The method is feasible on every instance (the official validator reports
-	zero violations in all cases), so the feasibility column in Table~\ref{tab:res} reads ``yes''
-	throughout. We compare each objective with the competition best-known value, which is the row
-	minimum over the published results of the 32 teams reported by \citet{ihtc2024site}. This best-known value is our
-	benchmark. Every gap in this report measures our objective against it, so a positive gap means the
-	field has published a better solution and a negative gap means we beat the field. The best-known baseline is a dated snapshot
+	\section{Numerical Results}\label{sec:results}
+
+	\paragraph{Setup, feasibility, and objectives.}
+	We ran all 30 public instances. We found a feasible solution for every instance, with zero violations from the official validator, so the feasibility column of Table~\ref{tab:res} reads ``yes'' throughout. We compare each objective with the competition best-known value, which is the row
+	minimum over the published results of the 32 teams reported by \citet{ihtc2024site}. Apart from the certified gaps of Section~\ref{sec:discussion}, every gap in this report measures our objective against this benchmark, so a positive gap means the
+	field has published a better solution. The best-known baseline is a dated snapshot
 	(6 July 2026) stored with the code, so our gaps stay fixed even if the competition site changes
-	later. The metaheuristic is randomized, so we run five fixed seeds per instance and report the best
-	of the five as the headline value, with the seed spread in Appendix~\ref{app:dist}.
+	later. The metaheuristic is randomized, so we run five fixed seeds per instance and report the best of the five as the headline value, with the seed spread in Appendix~\ref{app:dist}. The four added seeds recover about one point of mean gap.
 	
-	\paragraph{(d) Results table.}
+	\paragraph{Results table.}
 	Table~\ref{tab:res} reports, for each instance, the feasibility, the objective, the best-known
-	value, the gap, and the total runtime over the five seeds. The aggregate gap is 7.8\%. We come
+	value, the gap, and the total runtime over the five seeds. The aggregate gap is 7.8\%, total-based:
+	the difference of summed objectives and summed best-known values, divided by the best-known
+	total. Every aggregate gap in this report follows this rule; it weights instances by cost, so cheap instances cannot dilute hard ones. A
+held-out run on the competition's later-published hidden instances, made once under a
+pre-registered protocol after all development ended, reaches 6.10\%
+(Appendix~\ref{app:hidden}). We come
 	within 0.5\% of the best-known on 2 instances and within 3\% on 7. A group of mid-size and hard
 	instances keeps double-digit gaps. The aggregate component analysis below attributes the overall
 	gap mainly to the nurse layer; we do not decompose each instance's gap separately.
 	
-	\begin{center}
-		\captionof{table}{Results on the 30 public instances. Best-known is the benchmark, and the gap is measured against it. Runtime is the total over five seeds.}\label{tab:res}
+	\begin{table}[!ht]
+		\caption{Results on the 30 public instances. Best-known is the benchmark, and the gap is measured against it. Runtime is the total over five seeds, since the headline is the best of those runs and the winning seed's time alone would understate the compute spent.}\label{tab:res}
 		\input{full_table.tex}
-	\end{center}
-	
-	\paragraph{(e) Critical analysis: where the cost is, and what is hardest.}
+	\end{table}
+
+	\paragraph{Seed robustness.} Across the five seeds the objective is stable on the small instances
+	(a standard deviation of a few tens of units) and spreads on the hard ones (up to about 1300 on i17). The
+	roughly one-point best-of-five recovery stated above is modest, so the quality comes
+	from the method, not from running many restarts. The seeds give a robustness estimate and a reproducible way to get back some of the search variety our deterministic setup gives up.
+
+	\paragraph{Reproducibility.} The method is deterministic.\footnote{This does not conflict with the randomized metaheuristic: the search makes random choices, but each is drawn from a pseudorandom generator that the run's seed fixes, so the same seed reproduces the same run.} It uses no wall-clock stopping rule. The heuristic runs a fixed number of iterations (8{,}000 in the ALNS). Each solver stops on a fixed amount of work (Gurobi's WorkLimit, and a deterministic time budget for CP-SAT).\anote{Both budgets count solver-defined units of work rather than seconds: identical across runs by construction, and the hardware only changes how long one unit takes. Gurobi sizes a work unit near one second of computation.} For a fixed seed the solver returns the same solution on the same platform and solver versions, given fixed threads and work budget. Our repeated fixed-seed runs confirm this. One run, on record in Appendix~\ref{app:pricing}, matches bit for bit on i01 seed 1. Settings are in \texttt{ihtp/solvers.py}, per-stage budgets in \texttt{ihtp/experiments.py}. Only the runtime
+	changes with hardware. The 30 instances are independent, so they run in parallel across all
+	cores without breaking determinism.
+
+	\section{Discussion and Conclusion}\label{sec:discussion}
+
+	\paragraph{Where the gap comes from and where the computing effort goes.}
 	We compared our solutions with the best-known solutions component by component, summed over all 30
-	instances. The result was not what we expected. In absolute size, the objective is dominated by
-	unscheduled patients (\Sc8). Counting admitted optionals directly (not from the weighted \Sc8 cost,
-	whose weight varies by instance), we admit 2\,995 against the reference solutions' 2\,933, 62 more
-	overall and fewer on a few instances; the weighted \Sc8 is about 2\% lower to match. So the gap is
-	not in which optionals we admit. Admission delay (\Sc7) does count against us, at 17\% of the gap,
-	but the majority is the nurse layer: continuity (\Sc3) 39\%, under-skill (\Sc2) 30\%, and workload
+	instances. The largest cost in the objective is
+	unscheduled patients (\Sc8), but that is not where we lose. A direct count of admitted optionals
+	(not the weighted \Sc8 cost, whose weight varies by instance) shows we admit 2\,995 against the
+	reference solutions' 2\,933, and our weighted \Sc8 is about 2\% lower. The gap is therefore not
+	about which optionals we admit. Admission delay (\Sc7) costs us 17\% of the gap. Most of the
+	rest comes from the nurse side: continuity (\Sc3) 39\%, under-skill (\Sc2) 30\%, and workload
 	(\Sc4) 22\%, about 90\% of the net gap (78\% of the gross positive differences). Appendix~\ref{app:comp}
 	and Table~\ref{tab:adm} give the breakdown and the per-instance counts. We diagnosed
-	two causes, each with a controlled experiment on the same instances and seeds; we report the settled figures below, not the raw sweeps, whose budgets and findings are recorded in \texttt{ihtp/experiments.py}.
-	First, the nurse MIP was starved of solver time: re-solving it with a larger work budget on the
-	same fixed layout cut nurse cost by up to 16\% on the hard instances, and by 0\% on the small ones
-	that were already optimal. This led us to the size-scaled nurse budget the pipeline now uses, which
-	moved the aggregate gap from 9.2\% to 7.8\%. Second, a structural cause remains: the admission stage
-	does not see the nurse cost that its choices create, so it admits patients who are expensive to
-	staff. Our lower \Sc8 is partly bought with higher nurse cost. The clearest next steps are to price an estimate of nurse cost into
-	the admission objective, and to loop the admission and nurse models rather than run them once.
-	\citet{garciatercero2026}, a competition finalist, reach the same conclusion: they flag the link between patient placement and nurse cost as open, and build a dedicated model per subproblem rather than one monolithic model, for speed; our two steps likewise keep the models separate.
-	More seeds help only slightly (Appendix~\ref{app:dist}), and longer budgets gave diminishing returns in our profiling, both consistent with the limit being the model coupling rather than compute.
+	two causes, each with a controlled experiment. The nurse-budget sweep ran during development;
+	the notes in \texttt{ihtp/experiments.py} summarize it, and its per-instance records were not
+	archived. The registered probe of Appendix~\ref{app:structure} later re-measured the effect
+	with stored records.
+	First, the nurse MIP was given too little solver time. A re-solve with a larger work budget on
+	the same fixed layout cut nurse cost by up to 16\% on the hard instances, and by 0\% on the small
+	ones that were already optimal. This led to the size-scaled nurse budget the pipeline now uses, 600 to 800 work units rising with rooms times days. The aggregate gap moved from 9.2\% at the old flat budget of 120, to 7.9\% at a flat 600, to 7.8\% with the scaling. It applies to the final nurse solve; the LNS-round re-solves keep a smaller cap, since they only decide round acceptance. Second, a cause remains after the budget fix, and we first read it as purely structural. The admission stage does not see the nurse cost its choices create. A later probe splits it (Appendix~\ref{app:structure}). A larger nurse budget alone closes 6\% to 63\% of the remaining gap on the largest-gap nurse-heavy instances, and none on a small control. Part of what remains is therefore solver budget, and the rest is structure. These two also carry the computing effort. The admission MIP stops fitting inside its work budget as instances grow, which is why the CP-SAT re-pack stage exists. The sweep showed the nurse MIP starved, which is why that budget is the one we scale with instance size.
+	More seeds help only slightly (Appendix~\ref{app:dist}); the budget notes in
+	\texttt{ihtp/experiments.py} record the same for longer budgets, which the probe above
+	corrected for the nurse budget on the largest instances.
+
+	\paragraph{The coupling test: a nurse-aware admission audit.}
+	The simplest explanation would be that the nurse-blind admission stage
+	admits patients whose staffing cost exceeds the penalty they avoid. A standalone audit tests that reading directly, leaving the pipeline untouched (Appendix~\ref{app:audit}). The pipeline can admit an optional patient, but no stage can later un-admit one against the full objective. The audit adds that missing move. It postpones each admitted optional, one at a time, from our final solutions, and keeps a removal only if the complete objective, nurses included, strictly improves. On i01 and the five largest-gap instances, over 1\,061 admitted optionals, it accepts zero removals. The smallest margin is 58 cost units (i27). Every audited admission is individually justified. The damage is not in how many patients we admit. It is in where we put them, meaning which room and which day, and that drives continuity (\Sc3), the largest nurse term. Two fixes follow: pricing an estimate of the placement-side nurse cost into the admission
+	objective, and looping the admission and nurse models rather than running them once.
+	\citet{garciatercero2026}, competition finalists, keep the models separate in the same way, with IP-based operators inside a local search \citep{ihtc2024paper}.
+	Appendix~\ref{app:pricing} reports a pre-registered test of a static form of the first step,
+	priced into the heuristic upper layer. It passes its declared criteria, but a placebo control\anote{A placebo control removes the claimed active ingredient, here the real nurse information, and keeps everything else the same; if it does as well, the ingredient did not help \citep{shadish2002}. A perturbation is any change to the numbers guiding the search.} attributes its small aggregate gain to the perturbation itself rather than to the nurse information, which points away from static prices. Appendix~\ref{app:structure} then splits the remaining nurse gap between solver budget and the coupling itself.
 	
-	\paragraph{Ablation.}\anote{An ablation is a controlled experiment that measures what one part of a method contributes \citep{fawcett2016}. We add the stages one at a time, in the fixed order the pipeline runs, holding the seed and the per-stage work budgets fixed, and record the objective after each. A stage is kept only when its addition lowers the overall cost. Each stage targets a different cost term (admissions, capacity, theatres, nurses), so its drop cannot be obtained by giving another stage more time; the single seed means the table shows one deterministic path, and the seed spread is reported in Appendix~\ref{app:dist}.} Table~\ref{tab:abl} adds the stages one at a time on representative instances.
-	The construction is far from best-known. The PAS-MIP yields the single largest drop because it
-	fixes admissions. The ALNS and descent trim the secondary costs. The CP-SAT LNS admits the last
-	hard-to-place optional patients, and the exact OT and NRA models remove the final theatre and nurse cost. We dropped
-	any component that did not help (for example, a best-fit packing rule we tried early on). We chose these four instances to span the size range, from the small i04 to the largest i27, and add the stages in the pipeline's own fixed order, so neither the subset nor the order is tuned to the outcome.
+	\paragraph{Ablation.}\anote{An ablation is a controlled experiment that measures what one part of a method contributes \citep{fawcett2016}. We add the stages one at a time, in the fixed order the pipeline runs. The seed and the per-stage work budgets stay fixed, and we record the objective after each. The PAS-MIP and the CP-SAT LNS share the admission terms. Every other stage targets its own cost terms, so one stage's drop cannot come from giving another more time. The single seed shows one deterministic path; Appendix~\ref{app:dist} reports the seed spread.} Table~\ref{tab:abl} adds the stages one at a time; each stage's measured role is stated with that stage in Section~\ref{sec:approach}. The same standard held beyond the stages: the nurse budget rose only
+	after the controlled experiment above showed it binding, and Appendix~\ref{app:pricing}'s priced
+	layer was not adopted after failing its placebo control. The four instances span the size range (i04 to i27), and the stages enter in pipeline order, so neither the subset nor the order is tuned to the outcome.
 	
 	\input{ablation_table.tex}
 	
 	\paragraph{Certified optimality gap.} The best-known values are upper bounds, not proven optima, so
 	a gap to them cannot say how close we are to the true optimum. We therefore compute a valid lower
-	bound of our own\anote{A certified optimality gap is the distance between our objective and a proven lower bound on the true optimum, given as a percentage of that bound \citep{wolsey1998}. It differs from the gap to a best-known value, which only compares our result to another heuristic. The lower bound is guaranteed, so the true optimum cannot sit below it, and the real gap to the optimum is at most this figure. We obtain the bound as Gurobi's proven dual bound on a relaxation of the problem, which is a valid lower bound whether or not the relaxation itself is solved to optimality (Appendix~\ref{app:bounds}).}. We solve a relaxation that keeps the admission decision and the two binding
-	resources (surgeon-day and theatre-day time) with the patient-side costs they drive, and drops the
-	room packing and the nurse layer, which only add non-negative cost. Dropping constraints and
-	non-negative terms can only lower the optimum, so Gurobi's proven dual bound on this relaxation is a
-	valid lower bound on the true optimum, which is a standard relaxation argument in integer programming \citep{wolsey1998}.
-	\citet{ceschia2011} compute relaxation-based lower bounds for patient admission scheduling by the same relaxation argument. This gives a certified gap
-	(Appendix~\ref{app:bounds}): the true optimum lies between the bound and our objective. The bound is
-	loose, because it ignores the nurse and age-mix costs, so both our certified gap (57\%) and the
-	best-known's own certified gap (46\%) are large and track each other across instances. This tells us
-	the looseness is mostly in the bound. 
+	bound of our own\anote{A certified optimality gap is the distance between our objective and a proven lower bound on the true optimum, as a percentage of that bound \citep{wolsey1998}. The true optimum cannot sit below the bound, so the real gap to it is at most this figure (Appendix~\ref{app:bounds}).}. We solve a relaxation that keeps the admission decision and the two binding
+	resources (surgeon-day and theatre-day time) with the costs they drive, and drops the rest.
+	No dropped constraint or non-negative cost can raise the optimum, so the relaxation's proven dual bound is a valid lower bound \citep{wolsey1998}, the argument \citet{ceschia2011}
+	use for patient admission scheduling (Appendix~\ref{app:bounds}). This gives a certified gap:
+	the true optimum lies between the bound and our objective. The bound is
+	loose because it ignores the nurse and age-mix costs. Both our certified gap (57\%) and
+	best-known's own (46\%) are therefore large and track each other across instances. We read
+	the looseness as mostly in the bound, since the pooled best of 32 teams is unlikely to sit 46\% above the true optimum.
 	
-	\paragraph{Seed robustness.} Across the five seeds the objective is stable on the small instances
-	(a standard deviation of a few units) and spreads on the hard ones (up to about 1300 on i17). Best
-	of five improves on the average single seed by about one point of gap. The quality therefore comes
-	from the method, not from running many restarts. The seeds serve two ends: a robustness
-	estimate for a randomized search, and a reproducible way to recover the search breadth that our
-	deterministic setup gives up (see the reproducibility note below).
+	\paragraph{Strengths and limitations.} Every public and hidden run produced a feasible solution, with gaps a few percent above the pooled best of 32 teams. The results rebuild from the repository. Our development and tuning used the 30 public instances, so the headline results are measured on instances that shaped the method. A later pre-registered run on the competition's hidden instances (Appendix~\ref{app:hidden}) adds a held-out measurement: feasible on all 150 runs, at a 6.10\% aggregate gap against a smaller benchmark pool. Claims beyond these two instance sets remain untested. The certified lower bound is valid but loose, so we locate each true optimum only within the reported interval. The numbers are tied to the recorded solver versions, budgets, and hardware, and to a Gurobi license, which the exact models and the certified bound require. A different solver version or CPU architecture may change them. We report seed spreads (Appendix~\ref{app:dist}), not formal confidence intervals. The open modeling problem is separate from these limits on the evidence. Appendix~\ref{app:pricing}'s static-pricing test left the admission-nurse coupling unresolved. The coupling loop and a larger nurse solve are the future work we propose.
 	
-	\paragraph{Reproducibility.} The method is deterministic.\footnote{This does not conflict with the randomized metaheuristic: the search makes random choices, but each is drawn from a pseudorandom generator that the run's seed fixes, so the same seed reproduces the same run. The method is randomized in how it explores and deterministic once the seed is set.} It uses no wall-clock stopping rule. The
-	heuristic runs a fixed number of iterations, and each solver stops on a fixed amount of work
-	(Gurobi's WorkLimit, and a deterministic time budget for CP-SAT). For a fixed seed the solver
-	returns the same solution on the same platform and solver versions, and only the runtime
-	changes with hardware. We do not claim bit-identical values across a different solver version or CPU
-	architecture, since that is a property of the solver and not of our stopping rules. The 30 instances are independent, so they run in parallel across all
-	cores without breaking determinism.
-	
-	\paragraph{Limitations.} These results are for the 30 public instances only, which we also used for development and tuning, with no held-out set, so we do not claim they generalize to the competition's hidden instances or to new ones. The best-known baseline is an upper bound, not a proven optimum, and our certified lower bound is valid but loose, so we locate each true optimum only within the reported interval. The numbers are tied to the solver versions, work budgets, and hardware recorded above, and reproduce under those; a different solver version or CPU architecture may change them. We run five seeds and report the spread in Appendix~\ref{app:dist}, not formal confidence intervals. These are limitations of the evidence, separate from the one open modeling problem, the admission-nurse coupling, which we propose as future work.
-	
-	\section{Conclusion}
+	\paragraph{Conclusion.}
 	A two-layer matheuristic solves the IHTP feasibly on all 30 public instances and comes within a
-	fraction of a percent of the best-known value on the closest ones, at an aggregate gap of 7.8\%. The
-	design was driven by evidence throughout. We found the dominant cost (admissions), diagnosed its
-	cause (capacity packing), and used the exact tool that fits it, keeping only the stages an ablation
-	shows to help. Our component analysis then showed that the remaining gap is in the nurse layer, and
-	we traced it to a solver budget that we fixed and to a model coupling that we describe as the next
-	step. We consider the honest reporting of that residual, backed by our own experiments and a
-	certified bound, to be as much a result as the objective values themselves. 
+	fraction of a percent of best-known on the closest ones. The aggregate gap is 7.8\%, and 6.10\%
+	in one held-out run on the hidden instances (Appendix~\ref{app:hidden}). We built the method from our own reading of the problem rather than adapting a published solution, and we kept each part only when a measurement supported it. The dominant cost sat in admissions, a capacity-packing problem, so we solved it with an exact model. Our component analysis placed the remaining gap in the nurse layer. We traced it to a solver budget later found still binding on the largest instances (Appendix~\ref{app:structure}), and to a model coupling. On the audited instances no single admission is worth undoing, and a fixed price on where patients go gains no more than its placebo. The coupling loop is the next step.
 	
 	\newpage
 	\begin{thebibliography}{Ceschia et~al.(2025b)}
 		
+		\bibitem[Barr et~al.(1995)]{barr1995}
+		Barr, R.~S., Golden, B.~L., Kelly, J.~P., Resende, M.~G.~C., \& Stewart, W.~R. (1995).
+		Designing and reporting on computational experiments with heuristic methods.
+		\emph{Journal of Heuristics, 1}(1), 9-32.
+
 		\bibitem[Burke et~al.(2004)]{burke2004}
 		Burke, E.~K., De~Causmaecker, P., Vanden~Berghe, G., \& Van~Landeghem, H. (2004).
 		The state of the art of nurse rostering. \emph{Journal of Scheduling, 7}(6), 441-499.
@@ -354,8 +389,12 @@
 		Ceschia, S., \& Schaerf, A. (2011).
 		Local search and lower bounds for the patient admission scheduling problem.
 		\emph{Computers \& Operations Research, 38}(10), 1452-1463.
-		
-		\bibitem[Fawcett \& Hoos(2016)]{fawcett2016}
+
+		\bibitem[Efron and Tibshirani(1994)]{efron1994}
+		Efron, B., \& Tibshirani, R.~J. (1994).
+		\emph{An Introduction to the Bootstrap}. Chapman \& Hall/CRC.
+
+		\bibitem[Fawcett and Hoos(2016)]{fawcett2016}
 		Fawcett, C., \& Hoos, H.~H. (2016).
 		Analysing differences between algorithm configurations through ablation.
 		\emph{Journal of Heuristics, 22}(4), 431-458.
@@ -370,7 +409,20 @@
 		Glover, F. (1996).
 		Ejection chains, reference structures and alternating path methods for traveling salesman problems.
 		\emph{Discrete Applied Mathematics, 65}(1-3), 223-253.
-		
+
+		\bibitem[Hastie et~al.(2009)]{hastie2009}
+		Hastie, T., Tibshirani, R., \& Friedman, J. (2009).
+		\emph{The Elements of Statistical Learning} (2nd ed.). Springer.
+
+		\bibitem[Hooker(1995)]{hooker1995}
+		Hooker, J.~N. (1995).
+		Testing heuristics: We have it all wrong.
+		\emph{Journal of Heuristics, 1}(1), 33-42.
+
+		\bibitem[Hoos and St\"utzle(2004)]{hoos2004}
+		Hoos, H.~H., \& St\"utzle, T. (2004).
+		\emph{Stochastic Local Search: Foundations and Applications}. Morgan Kaufmann.
+
 		\bibitem[IHTC(2024)]{ihtc2024site}
 		Integrated Healthcare Timetabling Competition (IHTC). (2024).
 		\emph{IHTC-2024: Instances, official validator, and published team results}.
@@ -385,6 +437,11 @@
 		\emph{Matheuristics: Hybridizing metaheuristics and mathematical programming}
 		(Annals of Information Systems, Vol.~10). Springer.
 		
+		\bibitem[Nosek et~al.(2018)]{nosek2018}
+		Nosek, B.~A., Ebersole, C.~R., DeHaven, A.~C., \& Mellor, D.~T. (2018).
+		The preregistration revolution.
+		\emph{Proceedings of the National Academy of Sciences, 115}(11), 2600-2606.
+
 		\bibitem[Pisinger and Ropke(2010)]{pisinger2010}
 		Pisinger, D., \& Ropke, S. (2010).
 		Large neighborhood search. In M.~Gendreau \& J.-Y.~Potvin (Eds.),
@@ -400,11 +457,25 @@
 		Record breaking optimization results using the ruin and recreate principle.
 		\emph{Journal of Computational Physics, 159}(2), 139-171.
 		
+		\bibitem[Shadish et~al.(2002)]{shadish2002}
+		Shadish, W.~R., Cook, T.~D., \& Campbell, D.~T. (2002).
+		\emph{Experimental and Quasi-Experimental Designs for Generalized Causal Inference}. Houghton Mifflin.
+
 		\bibitem[Shaw(1998)]{shaw1998}
 		Shaw, P. (1998).
 		Using constraint programming and local search methods to solve vehicle routing problems.
 		In \emph{Principles and Practice of Constraint Programming (CP 1998)}
 		(Lecture Notes in Computer Science, Vol.~1520, pp.~417-431). Springer.
+
+		\bibitem[Spearman(1904)]{spearman1904}
+		Spearman, C. (1904).
+		The proof and measurement of association between two things.
+		\emph{American Journal of Psychology, 15}(1), 72-101.
+
+		\bibitem[Wilcoxon(1945)]{wilcoxon1945}
+		Wilcoxon, F. (1945).
+		Individual comparisons by ranking methods.
+		\emph{Biometrics Bulletin, 1}(6), 80-83.
 		
 		\bibitem[Wolsey(1998)]{wolsey1998}
 		Wolsey, L.~A. (1998).
@@ -416,9 +487,7 @@
 	\appendix
 	\section{The operating-theatre and nurse models}\label{app:models}
 	The report gives the admission model (PAS-MIP) and describes the last two exact models in
-	words. The formulations below are our own, and they match our implementation in Python. They follow the
-	standard model forms for operating-theatre scheduling \citep{cardoen2010} and nurse rostering
-	\citep{burke2004}, specialized to the costs and constraints of this competition.
+	words. The formulations below are our own and match our implementation in Python. They follow the standard assignment-model forms for operating-theatre scheduling \citep{cardoen2010} and for the nurse-to-room subproblem as the competition defines it \citep{ihtc2024paper}. We adapted both to this competition's costs and constraints.
 	
 	\paragraph{OT-MIP, per day.} For a fixed day $d$, the surgeries are the patients admitted on day
 	$d$, and $t$ ranges over the theatres available on day $d$ ($A_{t,d}>0$). Variables: $y_{p,t}$ (surgery $p$ in theatre
@@ -438,11 +507,8 @@
 	\paragraph{NRA-MIP.} With the layout fixed, $(r,s)$ ranges over occupied room-shifts. Variables:
 	$v_{n,r,s}$ (nurse $n$, on duty in shift $s$, covers room $r$), $o_{n,s}\ge 0$ (workload of $n$ in
 	shift $s$ above the cap), and $c_{e,n}$ (entity $e$, a patient or occupant, is seen by nurse $n$).
-	Let $\mathrm{gap}_{r,s,n}=\sum_{e\in(r,s)}\max(0,\mathrm{req}_{e,s}-\sigma_n)$ be the skill
-	shortfall, which is a constant, and let $w_{r,s}$ be the workload demanded in room $r$ at shift $s$.
-	The entities $e\in\mathcal P\cup\mathcal O$ are the admitted patients and occupants; $r_e$ is the room $e$ occupies,
-	$e\in(r,s)$ means $e$ is present in room $r$ during shift $s$, and requirements are indexed from each entity's start
-	(for a patient admitted on day $d_0$, stay-shift $j$ is global shift $s=3d_0+j$; occupants are indexed from day~0).
+	The skill shortfall $\mathrm{gap}_{r,s,n}=\sum_{e\in(r,s)}\max(0,\mathrm{req}_{e,s}-\sigma_n)$ is a constant. The workload demanded in room $r$ at shift $s$ is $w_{r,s}=\sum_{e\in(r,s)}w_{e,s}$. The input gives occupants the same per-shift workload and skill-requirement data as patients.
+	The entities $e\in\mathcal P\cup\mathcal O$ are the admitted patients and occupants. Each entity $e$ occupies room $r_e$, and $e\in(r,s)$ means $e$ is present in room $r$ during shift $s$. Requirements are indexed from each entity's start. For a patient admitted on day $d_0$, stay-shift $j$ is global shift $s=3d_0+j$. Occupants are indexed from day~0.
 	{\small
 		\begin{align*}
 			\min\;\; & W_2\!\!\sum_{r,s,n}\!\mathrm{gap}_{r,s,n}\,v_{n,r,s}
@@ -453,28 +519,203 @@
 			& c_{e,n}\ge v_{n,r_e,s}\quad(\text{each shift }s\text{ of }e\text{'s stay}) && \text{(\Sc3)}\\
 				& v_{n,r,s},\,c_{e,n}\in\{0,1\},\ o_{n,s}\ge 0 && \text{(domains)}
 	\end{align*}}%
-	The greedy nurse assignment warm-starts the NRA-MIP, and the current theatre placement warm-starts the OT-MIP, so each solve begins from a feasible incumbent.
+	The greedy nurse assignment warm-starts the NRA-MIP, and the current theatre placement warm-starts the OT-MIP. Each solve therefore begins from a feasible incumbent, which gives branch and bound an upper bound to prune against from the first node \citep{wolsey1998}.
 	
+	In both models every auxiliary counter ($\omega_t$, $h_{u,t}$, $\tau_u$, $o_{n,s}$, $c_{e,n}$) is only bounded from below. Minimization then drives each to its exact count at optimality. This is the standard linearization device \citep{wolsey1998}.
+
 	\section{Seed distribution (five fixed seeds)}\label{app:dist}
-	For each instance: the number of feasible seeds, the best, mean, worst, and standard deviation of
-	the objective, and the best-of-5 gap to best-known. Each seeded run is deterministic, so this table
-	reproduces on the same solver versions. The full per-seed objective and runtime for every instance
+	This table is the seed-robustness evidence behind the best-of-five headline. A randomized method gives a different result on each run, so a single run cannot describe it. The reporting standard for heuristics is several runs with their spread, not one number \citep{barr1995}. For each instance the table gives the number of feasible seeds, the best, mean, worst, and standard deviation of the objective, and the best-of-5 gap to best-known. Feasibility never depends on the seed. The spread of the objective shows how much of the headline comes from restarts. Each seeded run is deterministic, so this table
+	reproduces on the same solver versions. Per-seed feasibility is checked by our golden-tested evaluator. The official validator re-checks each instance's reported best, since that is the only per-seed value we report. The full per-seed objective and runtime for every instance
 	are in \texttt{results/seed\_runs.csv} in our GitHub repo.
 	\input{seed_distribution.tex}
 	
 	\section{Component-level cost breakdown}\label{app:comp}
-	Each soft term's total weighted cost, summed over the 30 instances, for our solutions and for the
-	best-known solutions, with the difference and its share of the total gap. Our costs are read from
+	A total-versus-total comparison says who is ahead but not why, so we split the gap by cost term.
+	This follows the case for experiments that explain where a method's performance comes from,
+	rather than ranking methods alone \citep{hooker1995}.
+	The table gives each soft term's weighted cost, summed over the 30 instances, for our solutions
+	and for the best-known solutions, with the difference and its share of the total gap. Our costs are read from
 	the official validator logs, and the best-known costs come from running the same validator on the
-	published reference solutions \citep{ihtc2024site}. The nurse terms \Sc2, \Sc3, \Sc4 make up about 90\% of the net gap (78\% of the gross positive differences), and
-	we sit below best-known on the weighted \Sc8, but because that cost mixes per-instance weights, Table~\ref{tab:adm} counts admitted optionals directly (2\,995 versus 2\,933, 62 more).
+	published reference solutions \citep{ihtc2024site}. The nurse terms \Sc2, \Sc3, \Sc4 make up about 90\% of the net gap (78\% of the gross positive differences).
+	We sit below best-known on the weighted \Sc8. That cost mixes per-instance weights, so Table~\ref{tab:adm} counts admitted optionals directly (2\,995 versus 2\,933, 62 more). The
+	script \texttt{report/make\_admissions.py} counts them from our solution files in
+	\texttt{results/} and from the same reference solutions.
 	\input{component_table.tex}
 \input{admissions_table.tex}
 	
 	\section{Certified lower bounds}\label{app:bounds}
-	We bound the true optimum from below by relaxing the exact model: dropping constraints can only lower the optimum, so a relaxation's optimum is a valid lower bound \citep{wolsey1998}, and \citet{ceschia2011} bound patient admission scheduling the same way. Our relaxation is the admission model of \S2 with the room dropped (binary $x_{p,d}$, admit $p$ on day $d$), paired over the whole horizon with the per-day theatre variables of Appendix~\ref{app:models} (binary theatre choice and the open-theatre and surgeon-transfer indicators, under the per-theatre \Hc4). It keeps the admission rules \Hc5 and \Hc6, the surgeon-day \Hc3 and theatre-day \Hc4 time limits, and the four costs those resources drive, \Sc5, \Sc6, \Sc7 and \Sc8, which are all it minimizes. It drops the room and gender assignment (\Hc1, \Hc2, \Hc7) and the bed capacity they imply, and the nurse coverage (\Hc8), and with them the non-negative costs \Sc1 (age mix) and \Sc2 to \Sc4 (nurse). Dropping constraints only enlarges the feasible region and the dropped costs are non-negative, so the relaxation's optimum is a valid lower bound on the true optimum.
+	We bound the true optimum from below by relaxing the exact model. A dropped constraint can only lower the optimum, so a relaxation's optimum is a valid lower bound \citep{wolsey1998}. \citet{ceschia2011} bound patient admission scheduling the same way. Our relaxation is the admission model of Section~\ref{sec:approach} with the room dropped (binary $x_{p,d}$, admit $p$ on day $d$). The large-instance clipping of optional windows noted in Section~\ref{sec:approach} is not applied here. A valid relaxation needs every legal admission day, and \texttt{ihtp/bounds.py} keeps them all. Over the whole horizon this model is paired with the per-day theatre variables of Appendix~\ref{app:models}. Those variables are the binary theatre choice plus the open-theatre and surgeon-transfer indicators, all under the per-theatre \Hc4. The relaxation keeps the admission rules \Hc5 and \Hc6 and the surgeon-day \Hc3 and theatre-day \Hc4 time limits. It also keeps the four costs those resources drive, \Sc5, \Sc6, \Sc7 and \Sc8. Those four are all it minimizes. It drops the room and gender assignment (\Hc1, \Hc2, \Hc7), the bed capacity they imply, and the nurse coverage (\Hc8). The same drops remove the non-negative costs \Sc1 (age mix) and \Sc2 to \Sc4 (nurse). The removals enlarge the feasible region, and every cost they drop is non-negative. Neither change can raise the optimum, so the bound is valid.
 
-	Each relaxation runs on Gurobi with a deterministic $\mathrm{WorkLimit}=120$, $\mathtt{Threads}=1$, $\mathtt{Seed}=0$ and Gurobi's default MIP gap, with no wall-clock limit. The reported bound is $\lfloor\mathrm{ObjBound}\rfloor$, the proven dual bound: tight on i01 to i06, which solve to proven optimality, and the dual bound at the work limit on the other 24 (i07 to i30), still valid but looser, with per-instance status in \texttt{results/bounds.csv}. The aggregate certified gap is pooled over instances, $g=\big(\sum_i \mathrm{ours}_i-\sum_i \mathrm{LB}_i\big)/\sum_i \mathrm{LB}_i$; the table gives each instance's objective, best-known, bound and gap.
+	Each relaxation runs on Gurobi with a deterministic $\mathrm{WorkLimit}=120$, $\mathtt{Threads}=1$, $\mathtt{Seed}=0$ and Gurobi's default MIP gap, with no wall-clock limit. The reported bound is $\lfloor\mathrm{ObjBound}\rfloor$, the proven dual bound. Branch and bound keeps a proven floor under every subproblem it has not yet closed, so this bound stays valid when the work limit stops the solve early. On i01 to i06 the relaxation solves to proven optimality, so the bound is its exact optimum. On the other 24 (i07 to i30) the bound is the dual bound at the work limit. That bound is still valid, but looser. Per-instance status is in \texttt{results/bounds.csv}. The aggregate certified gap is pooled over instances, $g=\big(\sum_i \mathrm{ours}_i-\sum_i \mathrm{LB}_i\big)/\sum_i \mathrm{LB}_i$. The table gives each instance's objective, best-known, bound and both certified gaps. Best-known's own gap shows how much of ours comes from bound looseness (Section~\ref{sec:discussion}).
 	\input{bounds_table.tex}
-	
+
+	\section{The nurse-aware admission audit}\label{app:audit}
+	The audit is a standalone script (\texttt{extensions/postpone\_audit.py} in our repository); it
+	consumes the final validated solutions from \texttt{results/} and modifies neither the pipeline
+	nor its results. The pipeline works one way only. Every admit-or-postpone decision compares a patient's own cost against the penalty $W_8$, and it never looks at the nurse terms. Once a patient is admitted, no stage re-examines that decision
+	individually against the full objective (the CP-SAT LNS accepts whole rounds, not single
+	admissions, and the descent relocates admitted patients but never removes one). The audit adds
+	the missing move. It works through the admitted optional patients in a seeded random order, so the audit is reproducible. For each such patient $p$, it removes $p$ and re-scores the complete objective. Changing one thing at a time is how an ablation assigns credit \citep{fawcett2016}. Before scoring, the nurse assignment is re-solved with the same greedy nurse fill that the pipeline's true-cost descent uses. The removal is kept only if the total strictly
+	drops; otherwise $p$ is restored exactly. This is first-improvement descent over a one-move
+	neighborhood, with the randomized order and the repeat-until-no-change rule that stochastic
+	local search uses \citep{hoos2004}. Passes repeat until one finds no improvement, with a cap of four as a safeguard against a long sweep; in every run reported here the first pass already found none, so the cap never bound. A removal of an optional patient cannot violate any hard constraint. The hard constraints fall into three cases. Some bound resource use, and a removal only frees resources. Some apply only to the removed patient's own placement. The rest concern mandatory patients (\Hc5). Feasibility is therefore
+	preserved throughout. Any changed solution would be re-solved by the exact OT and NRA models and re-validated by the official validator. The baseline's theatres and nurses were themselves solved exactly. A changed plan is therefore compared with the baseline like-for-like, not under the sweep's cheaper greedy roster.
+
+	Table~\ref{tab:audit} reports the outcome on i01 and the five instances with our largest relative
+	gaps to best-known. These were chosen because a volume-driven coupling loss should be largest where
+	the gap is largest, making zero removals a worst-case outcome. We picked the instances where the
+	effect should show most, rather than a convenient sample, so the test carries evidence about
+	the mechanism \citep{hooker1995}. No removal is ever accepted. The margin column shows how far each decision is from flipping. For every admitted optional we score $\mathrm{cost}(\text{plan without }p)-\mathrm{cost}(\text{plan with }p)$. Both states are scored under the same greedy nurse fill that the sweep uses. The exact nurse re-solve, far costlier per candidate, is reserved for accepted removals, of which there were none. A
+	positive margin means keeping the patient is cheaper; a
+	negative margin would mark a patient the pipeline should not have admitted. All 1\,061 margins are
+	positive, which also makes the zero-removal outcome independent of the sweep order. On these instances the nurse-blind admission rule therefore makes the right call every time, as far as the audit can measure it with the greedy nurse fill. The loss from the admission--nurse link must then lie somewhere other than in how many patients we admit. Two candidates remain. The first is where patients are placed, meaning rooms and days, which is what drives continuity. Section~\ref{sec:discussion} gives that reading. The second is coordinated multi-patient withdrawals, which this one-at-a-time scope cannot test. Appendix~\ref{app:pricing} examines them.
+
+	\begin{center}
+		\captionof{table}{The postpone audit on i01 and the five largest-gap instances. Margins are in cost units; a negative minimum would mean a net-negative admission. No removal is accepted on any instance.}\label{tab:audit}
+		\small
+		\begin{tabular}{@{}lrrrrrrr@{}}
+			\toprule
+			& & optionals & & \multicolumn{3}{c}{margin} & net-negative\\
+			\cmidrule(lr){5-7}
+			instance & $W_8$ & audited & removals & min & median & max & admissions\\
+			\midrule
+			i01 & 350 & 20 & 0 & 160 & 289 & 334 & 0\\
+			i02 & 150 & 25 & 0 & 82 & 110 & 147 & 0\\
+			i17 & 500 & 270 & 0 & 240 & 557 & 1070 & 0\\
+			i21 & 250 & 234 & 0 & 70 & 355 & 665 & 0\\
+			i27 & 500 & 322 & 0 & 58 & 338 & 595 & 0\\
+			i29 & 300 & 190 & 0 & 206 & 280 & 351 & 0\\
+			\midrule
+			total & & 1\,061 & 0 & & & & 0\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+
+	\section{A nurse-aware upper layer: a pre-registered test with a placebo control}\label{app:pricing}
+	The audit of Appendix~\ref{app:audit} shows that no single admission is worth undoing on the instances it audits. This appendix tests the other possibility, which is where each admitted patient is placed. We add a price for the two nurse costs that can be estimated without solving the nurse model. The design is tested under a protocol written and frozen before the runs, so the results could not shape the criteria; this is the practice of pre-registration \citep{nosek2018}. Its registration time is recorded in \texttt{extensions/nurse\_pricing/PROTOCOL.md}. All code, per-run outcomes (\texttt{runs.csv}), and the post-hoc analysis script sit alongside it. The runs form a separate result set: the headline results of this paper are
+	unchanged.
+
+	\paragraph{Design.} Two terms are added to the surrogate objective, which guides the construction, the ALNS, and the moves the descent tries. The exact models are untouched and keep their own objectives (Section~\ref{sec:approach});
+	every accept-or-reject test still uses the true objective, and nurses are still assigned by the unchanged, exact NRA-MIP. First, a workload term: per shift, $W_4\cdot\max(0,\ \text{workload demand} - \text{on-duty capacity})$. This term is a valid lower bound on \Sc4, since caps fill first and indivisibility only raises the true cost. It is zero whenever the nurses on duty can absorb the demanded workload. Second, a skill-scarcity term: per day,
+	$W_2\cdot\max(0,\ \text{rooms whose daily requirement reaches the top skill level} -
+	\text{top-skill nurses on duty})$. The day's supply is the smallest of its three shifts. We assume one top-skill room per top-skill nurse is manageable. Patient requirements enter
+	per day of stay, since requirements fall as patients recover
+	(the max over a whole stay is degenerate on these instances: on i01 every patient's maximum is the same level). Continuity (\Sc3) is deliberately
+	not priced: at design time, Appendix~\ref{app:audit} and Section~\ref{sec:discussion} read it as a property of the roster, and no fixed price works without passing information between the layers. The budget probe
+	of Appendix~\ref{app:structure} later showed that a larger nurse solve also recovers part of the
+	continuity cost. A control run with both terms off reproduces the recorded baseline exactly, verified bit for bit on i01, seed 1. The added code itself therefore changes nothing, and every same-seed difference comes from the priced terms alone.
+
+	\paragraph{Protocol.} Five instances influenced the design (i01, i02, i17, i21, i29) and are declared a development set, reported without claims. An earlier term that priced the spread of skill levels within each room-day failed on them, and the per-day skill-level check above used them. Instance i27, audited in Appendix~\ref{app:audit}, contributed no
+	design decision to the pricing terms and therefore stays held out. The remaining \emph{25 instances
+	are held out}: no design decision ever touched them, and all confirmatory claims rest on them
+	alone. This is the standard split between data that shapes a method and data that judges it
+	\citep{hastie2009}. The weights of both terms were frozen at $1.0$ with no tuning, so no result could feed back into the design \citep{nosek2018}. All 30
+	instances were run on all five seeds under the production budgets, and all comparisons are
+	best-of-five against best-of-five over the same seeds, with gaps total-based over the frozen
+	best-known snapshot. The seeds are held fixed across both arms, so every run is paired with its own
+	baseline and seed variation cannot be read as an effect of the change
+	\citep{barr1995}. Every objective reported in this appendix is the official validator's, with
+	zero violations across all 300 runs of both arms. We declared two success criteria in advance. Criterion (a) is the aggregate effect. The held-out best-of-5 aggregate gap must improve. Criterion (b) tests whether the effect is broad and not concentrated in a few large wins. A majority of the 125 held-out same-seed pairs must not worsen.
+
+	\paragraph{Outcome.} Both criteria were met: the held-out aggregate gap moved from 6.78\% to
+	6.39\% ($-0.39$ points), and 56 improved and 7 unchanged against 62 worse. This is the narrowest
+	possible majority, and among strictly decided pairs more got worse. Post-hoc analysis (labeled
+	as such: it was not pre-specified) shows the aggregate improvement is real but fragile, with a
+	95\% bootstrap interval over instances of $[-0.81, -0.03]$ points (20{,}000 percentile
+	resamples). The per-instance effect, though, is indistinguishable from zero (13 better, 12
+	worse; two-sided Wilcoxon signed-rank on relative per-instance changes, $n{=}25$, $p=0.68$).\anote{A bootstrap interval estimates how much a figure would vary if the instance set itself were drawn again \citep{efron1994}. \texttt{analyze\_posthoc.py} redraws the 25 held-out instances with replacement and recomputes the aggregate-gap change. It repeats this 20{,}000 times and reports the middle 95\% of the results. The Wilcoxon test \citep{wilcoxon1945} ranks the paired changes by absolute size and asks whether the signs lean one way. It makes no assumption about the shape of the distribution, so a few large wins cannot decide the result on their own. That suits these 25 changes. Its $p$ is the probability of a lean at least this strong if there were no true per-instance effect.} The
+	gain is carried by a few large wins over the 25 held-out instances (sum $-3\,035$) against
+	many small losses (sum $+548$). The pre-declared concentration prediction (larger gains where
+	nurse cost dominates) is not supported by rank correlation \citep{spearman1904} (Spearman of relative change
+	against nurse-cost share, $n{=}25$, $+0.20$, the wrong direction).
+
+	\paragraph{Placebo control.} The decisive question is causal: does the improvement come from
+	nurse-supply information, or would any comparable change to the numbers guiding the search do
+	the same? A control that removes only the claimed ingredient answers this \citep{shadish2002}.
+	The placebo has a second pre-registered protocol (\texttt{PROTOCOL\_PLACEBO.md}). We re-ran the full campaign with the identical terms priced against a shuffled roster. Each shift keeps a capacity and each day keeps a top-skill count, but drawn from the wrong shift or day. The sizes therefore stay identical, and only the timing is false. The placebo
+	reproduces the gain within noise ($-0.40$ points against the nurse-informed arm's $-0.39$,
+	difference $+0.006$ points with a bootstrap interval of $[-0.19, +0.19]$). By the declared decision rule, \emph{the cause is not established}: aligning the price with the true roster adds no advantage this experiment can measure, since the interval spans half the total effect. The protocol declares one limit of this control. It removes the alignment with the real roster, not the information itself. Both terms still read the true patient demand; only the supply numbers are shuffled. The follow-up control below would remove the demand information too.
+
+	\paragraph{What both arms actually did.} A decomposition of the improvements by cost component explains
+	the tie. The real patch does reduce its priced skill term about twice as much as the placebo
+	($-1\,924$ versus $-929$), a trace of the intended mechanism. But the placebo reduces workload
+	twice as much, and both arms share one dominant pattern, consistent with the added term working like a \emph{tax on admissions}. Over the 25 held-out instances, both arms leave more
+	optional patients out (about two dozen, almost all on i19) at total unscheduled penalty
+	$+4\,900$ and $+5\,400$. They gain back more than that through lower delay and nurse cost
+	($-7\,470$ and $-7\,765$; the remaining components account for the small residual). This is
+	consistent with Appendix~\ref{app:audit}: removing any \emph{single} admitted optional from a
+	fixed plan never pays, yet a tax-induced withdrawal of several patients, re-planned around their
+	absence, does. This is the coordinated withdrawal that the audit's patient-by-patient scope could not
+	test (i19 itself lay outside the audited set, so the audit constrains neither reading there).
+	The large $W_8$ pushes the search to admit as many patients as it can, and it seems to go a little too far. Only coordinated changes can undo that.
+
+	\paragraph{Conclusion of the test.} A fixed price on where patients are placed, built from the supply side we tested, improves the search no more than an equal-sized change carrying no real nurse information.
+	We have now measured both routes, and neither fixed nurse-informed price has beaten its own placebo. This strengthens the conclusion of Section~\ref{sec:discussion}: closing the coupling's share of the nurse gap requires the admission and nurse layers to exchange information, not a fixed surcharge. Appendix~\ref{app:structure} separates that share from the
+	solver-budget share. The clean follow-up control carries no nurse information at all. The protocol names a random room-day price of matched size. For the tax reading, the most direct version is a flat per-admission surcharge. If either reproduces the $-0.4$-point shift, the effect is entirely
+	the tax.
+
+	\section{Where the nurse gap sits: a structure comparison and a budget probe}\label{app:structure}
+	The component analysis of Section~\ref{sec:discussion} places most of the remaining gap in the
+	three nurse terms. This appendix measures where that gap sits, in two steps, using only stored
+	solutions (\texttt{extensions/structure\_diff/}, with the probe protocol, scripts, and
+	per-instance records alongside). The structure metrics come from our golden-tested evaluator,
+	and the probe scores come from the official validator. The runs form a separate result set; the headline numbers are unchanged.
+
+	\paragraph{Structure comparison.} We compared the structure of our public-set solutions with
+	the competition's published best solutions on the same instances \citep{ihtc2024site}. Each metric below tests one possible reason for the nurse gap, so the comparison can tell the reasons apart instead of only showing that a gap exists \citep{hooker1995}. The published best solutions do not win by lining up patients' stays or by using fewer rooms. Mean roommate stay overlap is 0.13 on both sides,\anote{The overlap of a roommate pair is the number of days both patients are in the room, divided by the number of days at least one of them is there (\texttt{compare\_structure.py}). Identical stays give 1.0 and disjoint stays give 0.} and patients per used room match (9.8 ours, 9.7 theirs). Their advantage sits in all three nurse terms, and their mean count of distinct nurses per patient is 4.95 against our 5.56. The layouts are similar, so this pointed at the nurse solve rather than the layout.
+
+	\paragraph{Budget probe.} That reading was registered in advance in \texttt{PROBE.md}, again so the outcome could not shape the test \citep{nosek2018}; the file also records two earlier exploratory runs. We then re-solved the NRA-MIP once on each stored layout at work budget 3000, several times the production ceiling of 600 to 800, so a budget shortage could not be what limits the result. The layout stays untouched. Only the budget changes, so any improvement is attributable to it alone. This is again the one-change logic of an ablation \citep{fawcett2016}. A probe built this way answers why the gap is there. Competitive comparison against other methods cannot answer that \citep{hooker1995}. Table~\ref{tab:probe} shows the outcome. On the six largest-gap
+	nurse-heavy instances the re-solve closes between 6\% and 63\% of the gap to best-known, mostly in
+	continuity. The pooled share over the seven probed instances is 21.9\%, and the small control
+	instance closes nothing, as the protocol predicted.
+
+	\begin{center}
+		\captionof{table}{The budget probe: one NRA-MIP re-solve at work budget 3000 on the frozen
+		stored layout, scored by the official validator. The share is the fraction of the
+		instance's gap to best-known that the re-solve closes. The i17 and i22 runs were
+		exploratory, as the protocol records.}\label{tab:probe}
+		\small
+		\begin{tabular}{@{}lrrrr@{}}
+			\toprule
+			instance & before & after & change & share of gap closed\\
+			\midrule
+			i21 & 28\,011 & 25\,926 & $-2\,085$ & 63.0\%\\
+			i17 & 47\,970 & 45\,030 & $-2\,940$ & 39.5\%\\
+			i29 & 14\,287 & 13\,836 & $-451$ & 24.9\%\\
+			i22 & 53\,380 & 52\,715 & $-665$ & 12.0\%\\
+			i19 & 49\,544 & 48\,959 & $-585$ & 11.8\%\\
+			i27 & 62\,222 & 61\,572 & $-650$ & 6.3\%\\
+			i02 (control) & 1\,444 & 1\,444 & $0$ & 0.0\%\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+
+	\paragraph{What this changes.} The nurse gap splits into a solver-budget share and a residual
+	share. The budget share is solver time that the production budgets left unused on the largest instances. The residual share is what remains for the admission--nurse coupling. Appendix~\ref{app:audit} checks one admission at a time and finds none worth undoing. Appendix~\ref{app:pricing} finds a fixed price no better than a placebo. The diagnosis of Section~\ref{sec:discussion} survives this correction, at a smaller measured scale. The case for the coupling loop as future work now stands next to a simpler first step, a larger or restructured nurse solve. One further test could sharpen the split: running our nurse model,
+	at a large budget, on the published best layouts. If it matched their nurse costs there, the residual would point at the
+	layout; if it fell short, at our nurse solve. We note it as a possible next step.
+
+	\section{Held-out evaluation on the hidden instances}\label{app:hidden}
+	Our development and tuning used the 30 public instances only, and every result so far was
+	measured on them. The competition kept a second set of 30 hidden instances for its final
+	evaluation and has since published both the instances and the best solutions its finalists
+	reached. A single campaign of the frozen pipeline on that set measures generalization directly,
+	the standard role of a held-out set \citep{hastie2009}.
+	The protocol (\texttt{extensions/hidden\_eval/PROTOCOL\_HIDDEN.md}) was registered before any run, so no result could shape it \citep{nosek2018}. It fixed the code, the budgets, and the five-seed best-of-five policy. It also declared that we would report the outcome, whatever it was, and give the feasibility and runtime of every run \citep{barr1995}. The benchmarks are the published best
+	solutions, re-scored by the official validator; the values match the UB column of the
+	competition paper \citep{ihtc2024paper} on every instance we spot-checked.
+
+	\paragraph{Outcome.} All 150 runs are feasible under the official validator. The total-based
+	aggregate gap to the published best solutions is 6.10\%, against 7.80\% on the public set.
+	Thirteen of the 30 instances fall within 3\% and 18 within 5\%, and the largest gaps are again
+	on nurse-heavy instances (17.8\% on m27). The set includes instances larger than any public one
+	(m29 has 631 patients). Table~\ref{tab:hidden} gives the per-instance outcomes.
+
+	\paragraph{Two caveats.} The hidden benchmarks come from the five finalist methods, each run
+	ten times by the organizers \citep{ihtc2024paper}, while the public best-known values pool the
+	submissions of 32 teams. The hidden benchmarks may therefore be easier to approach, and the two aggregate gaps
+	are not strictly comparable. One campaign also cannot show how much the result would vary if we ran it again; the per-seed records are in \texttt{extensions/hidden\_eval/}. With those limits stated, the method's performance carries to instances it never saw, at a similar gap level, with feasibility on every run.
+
+	\input{hidden_table.tex}
+
 \end{document}

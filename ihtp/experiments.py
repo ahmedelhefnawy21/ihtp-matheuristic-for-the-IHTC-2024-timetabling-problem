@@ -1,4 +1,4 @@
-"""Experiment harness: matheuristic, ablation, and deliverables.
+"""Experiment runner: matheuristic, ablation, and deliverables.
 
 Per (instance, seed), see :mod:`ihtp.pipeline`:
     construct  ->  PAS MILP (admission core)  ->  ALNS refine  ->  exact OT + NRA polish

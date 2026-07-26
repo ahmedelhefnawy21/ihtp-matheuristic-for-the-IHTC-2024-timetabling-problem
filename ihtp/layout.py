@@ -8,8 +8,8 @@ S1 RoomAgeMix, S5 OpenOperatingTheater, S6 SurgeonTransfer, S7 PatientDelay.
 Hard terms held at zero by only ever offering feasible placements:
 H1 gender mix, H2 room compatibility, H3 surgeon overtime, H4 OT overtime,
 H6 admission window, H7 room capacity.
-S8 unscheduled and the four nurse-layer terms live elsewhere (constructor/experiment
-layer, nra.py).
+S8 unscheduled and the three nurse-layer terms (S2, S3, S4) live elsewhere
+(constructor/experiment layer, nra.py).
 
 Occupant occupancy is constant, so it is in once at init. ALNS reuses one Layout;
 place/unplace are the only mutators and both keep every cache and the running weighted

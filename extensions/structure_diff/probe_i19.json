@@ -1,0 +1,17 @@
+{
+ "instance": "i19",
+ "before": 49544,
+ "after": 48959,
+ "violations": 0,
+ "runtime_s": 1793.8,
+ "nurse_before": {
+  "RoomSkillLevel": 3080,
+  "ContinuityOfCare": 11420,
+  "ExcessiveNurseWorkload": 2295
+ },
+ "nurse_after": {
+  "RoomSkillLevel": 2980,
+  "ContinuityOfCare": 11060,
+  "ExcessiveNurseWorkload": 2170
+ }
+}

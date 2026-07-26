@@ -47,6 +47,7 @@ fi
 # 3. correctness gate: Python objective has to match the official C++ validator
 echo ">> golden test (evaluator vs official validator)"
 "$PY" tests/test_golden.py | tail -1
+"$PY" tests/crosscheck.py | tail -1
 
 # 3b. bail early on a bad Gurobi license, before the long solve
 echo ">> checking Gurobi license ($GRB_LICENSE_FILE)"
@@ -70,9 +71,10 @@ echo ">> computing certified lower bounds"
 echo ">> ablation (representative instances)"
 "$PY" report/make_ablation.py i04 i13 i16 i27
 
-# 7. rebuild the report tables from results/: summary, distribution, bounds, full
+# 7. rebuild the report tables from results/: summary, distribution, bounds, full, admissions
 echo ">> generating report tables"
 "$PY" report/make_tables.py results
+"$PY" report/make_admissions.py
 
 echo ">> done. Outputs in results/ (results.csv, summary.csv, seed_runs.csv, bounds.csv,"
 echo "   environment.txt) and report/ (*.tex tables). Compile report/report.tex for the PDF."

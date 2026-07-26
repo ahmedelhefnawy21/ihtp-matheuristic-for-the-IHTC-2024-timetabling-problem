@@ -16,7 +16,7 @@ Layout.search_objective(penalty) = upper soft (S1+S5+S6+S7) + optional-unschedul
 feasible after.
 
 Nurse soft costs (S2,S3,S4) aren't optimised in the loop: secondary to the upper terms,
-handled by greedy NRA at checkpoints and exact NRA polish in post. True objective (with
+handled by greedy NRA at checkpoints and an exact NRA solve afterwards. True objective (with
 NRA) is recomputed at every new upper best so the returned solution is scored honestly.
 """
 
@@ -418,7 +418,7 @@ def solve(inst: Instance, max_iters: int = 20000, seed: int = 0,
                 best_upper_state = lay.st.copy()
             # score the best-surrogate layout, not the current accepted one. Scoring current
             # instead moves no final objective (I checked it empirically): downstream true-cost
-            # stages (descent, CP-SAT LNS, exact polish) re-optimise whatever ALNS hands
+            # stages (descent, CP-SAT LNS, final exact solves) re-optimise whatever ALNS hands
             # back, so the pipeline doesn't care about the exact return state.
             tc, tv = eval_state(best_upper_state)
             if (tv, tc) < (best_true_viol, best_true_cost):

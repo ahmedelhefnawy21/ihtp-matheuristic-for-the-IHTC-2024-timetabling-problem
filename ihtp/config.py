@@ -9,10 +9,10 @@ from __future__ import annotations
 import os
 
 PKG_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(PKG_DIR)                       # .../group_project
+PROJECT_DIR = os.path.dirname(PKG_DIR)                       # .../ADVANCED_MODELLING
 REPO_DIR = os.path.dirname(PROJECT_DIR)                      # .../Advanced_Modeeling_final
 
-# raw instances vendored in data/instances/ to keep group_project self-contained
+# raw instances vendored in data/instances/ to keep the project self-contained
 # no vendored copy? fall back to sibling ihtc2024_competition_instances/ so an
 # unbundled checkout still works
 _VENDORED_INSTANCES = os.path.join(PROJECT_DIR, "data", "instances")

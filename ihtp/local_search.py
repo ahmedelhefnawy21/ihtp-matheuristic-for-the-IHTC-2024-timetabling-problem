@@ -5,8 +5,7 @@ just re-solves them at checkpoints. On small instances the leftover gap lives in
 the secondary terms tied to where/when a patient sits: age-mix S1, nurse skill
 S2, workload S4. So relocate one patient at a time to another feasible room or
 day, keep the move only if the full objective drops (fresh greedy NRA included).
-Every eval re-runs NRA greedily, so we land on rooms/days that are nurse-friendly,
-not just cheap to admit.
+Every eval re-runs NRA greedily, so we land on rooms/days that are nurse-friendly, and not merely cheap to admit.
 
 Per-candidate eval is O(instance): cheap on small instances, which is where the
 secondary gap sits anyway. Big ones just fit fewer improving moves into the pass

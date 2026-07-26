@@ -9,10 +9,17 @@ Stages, with the evidence behind each:
   3. ALNS: cleans up secondary terms the MILP leaves loose (age-mix S1, delay S7,
      theatre choice S5/S6), and mops up optionals the time-limited MILP dropped.
      Feasibility stays protected.
-  4. Exact polish: per-day OT/surgeon MILP (S5/S6), then NRA MILP (S2/S3/S4).
+  3b. Descent: true-cost local search (layout_descent). One-patient moves are
+      judged on the full objective with the nurses re-assigned.
+  3c. CP-SAT LNS (lns_improve): frees the unscheduled optionals plus a day
+      window and re-packs the slice exactly. This is the capacity-creating step.
+  4. Final exact solves: per-day OT/surgeon MILP (S5/S6), then NRA MILP (S2/S3/S4).
 
-Each stage keeps the best feasible solution, so the pipeline never regresses past
-the warm start. Every returned solution goes through the official C++ validator.
+Adoption rules. PAS is adopted when feasible, and ALNS hands its result forward
+directly, since both re-decide the dominant admission terms. From the descent
+onward a stage's output replaces the incumbent only when the full evaluated
+objective strictly improves. Every returned solution goes through the official
+C++ validator.
 """
 
 from __future__ import annotations
@@ -96,7 +103,7 @@ def matheuristic(inst: Instance, seed: int = 0, pas_work: float = 100.0,
             best_state, best_cost = ls, lc
         stage_costs["lns"] = best_cost
 
-    # 4. exact polish (OT then NRA)
+    # 4. final exact solves (OT then NRA)
     if do_polish and best_viol == 0:
         polished, _ = polish(inst, best_state, ot_work=ot_work, nra_work=nra_work)
         pc = evaluate(inst, polished)

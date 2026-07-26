@@ -1,16 +1,15 @@
 """CP-SAT patient LNS with exact repair.
 
 S8 (unscheduled optionals) dominates the objective. The one-shot exact PAS model gets
-most of the gap but times out on big instances, and a pure metaheuristic can't re-pack a
-saturated surgeon/room schedule to free capacity for one more optional. So: LNS with an
-exact repair (Shaw 1998; Ropke & Pisinger 2006). Free a slice, re-optimise it exactly,
-freeze the rest.
-
-The slice goes straight at S8. Free every unscheduled optional plus everyone admitted in
-a random day window, freeze the rest, subtract the frozen patients' resource use as
-residual capacities. Keeping all unscheduled optionals in the freed set each round is the
-whole point: gives the exact solver a fresh shot at admitting them without paying for the
-full-size model. Window width scales to hold the freed set near ``target_free``.
+most of the gap but times out on big instances. A pure metaheuristic cannot re-pack a
+saturated surgeon/room schedule to free capacity for one more optional. So the method is
+LNS with an exact repair (Shaw 1998; Ropke & Pisinger 2006). A slice is freed and re-
+optimised exactly, and the rest stays frozen. The slice goes straight at S8. The freed
+set is every unscheduled optional plus everyone admitted in a random day window. The
+rest is frozen, and the frozen patients' resource use is subtracted as residual
+capacities. The unscheduled optionals stay in the freed set every round. That gives the
+exact solver a fresh shot at admitting them without paying for the full-size model.
+Window width scales to hold the freed set near ``target_free``.
 
 Freed placement is a CP-SAT model. Reified/implication constraints do gender exclusivity
 and the open-OT + surgeon-transfer indicators. Only minimises the patient-side costs it

@@ -1,0 +1,25 @@
+{
+ "instance": "m07",
+ "seed": 1,
+ "objective": 7399,
+ "violations": 0,
+ "runtime_s": 1809.0,
+ "stage_costs": {
+  "construct": 10538,
+  "pas": 7725,
+  "alns": 7725,
+  "descent": 7695,
+  "lns": 7399,
+  "polish": 7399
+ },
+ "components": {
+  "RoomAgeMix": 53,
+  "RoomSkillLevel": 196,
+  "ContinuityOfCare": 395,
+  "ExcessiveNurseWorkload": 20,
+  "OpenOperatingTheater": 570,
+  "SurgeonTransfer": 0,
+  "PatientDelay": 1365,
+  "ElectiveUnscheduledPatients": 4800
+ }
+}

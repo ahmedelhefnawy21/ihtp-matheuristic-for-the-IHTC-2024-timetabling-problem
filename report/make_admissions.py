@@ -52,8 +52,7 @@ def main():
     panels = [names[0:per], names[per:2 * per], names[2 * per:3 * per]]
     lines = [r"\begin{center}\footnotesize",
              r"\captionof{table}{Optional patients admitted per instance (opt $=$ optional patients; ours vs the "
-             rf"reference solutions), counted directly rather than from the weighted \Sc8: {_fmt(tot_our)} "
-             rf"of {_fmt(tot_opt)} admitted versus {_fmt(tot_ref)}, {tot_our - tot_ref:+d} overall.}}"
+             r"reference solutions), counted directly rather than from the weighted \Sc8.}"
              r"\label{tab:adm}",
              r"\begin{tabular}{@{}lrrr@{\quad}lrrr@{\quad}lrrr@{}}",
              r"\toprule",

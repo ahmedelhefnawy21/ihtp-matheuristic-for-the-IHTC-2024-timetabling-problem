@@ -1,0 +1,25 @@
+{
+ "instance": "m04",
+ "seed": 1,
+ "objective": 3719,
+ "violations": 0,
+ "runtime_s": 602.9,
+ "stage_costs": {
+  "construct": 6046,
+  "pas": 3924,
+  "alns": 3782,
+  "descent": 3782,
+  "lns": 3719,
+  "polish": 3719
+ },
+ "components": {
+  "RoomAgeMix": 420,
+  "RoomSkillLevel": 10,
+  "ContinuityOfCare": 337,
+  "ExcessiveNurseWorkload": 252,
+  "OpenOperatingTheater": 680,
+  "SurgeonTransfer": 0,
+  "PatientDelay": 2020,
+  "ElectiveUnscheduledPatients": 0
+ }
+}

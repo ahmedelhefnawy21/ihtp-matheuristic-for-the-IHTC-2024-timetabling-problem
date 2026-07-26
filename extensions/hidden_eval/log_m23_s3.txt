@@ -1,0 +1,1 @@
+[m23 s3] objective=19225 violations=0 1828s

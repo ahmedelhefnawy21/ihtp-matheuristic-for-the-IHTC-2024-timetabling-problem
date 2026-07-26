@@ -1,0 +1,25 @@
+{
+ "instance": "m21",
+ "seed": 3,
+ "objective": 25910,
+ "violations": 0,
+ "runtime_s": 1975.8,
+ "stage_costs": {
+  "construct": 40451,
+  "pas": 27783,
+  "alns": 27783,
+  "descent": 27467,
+  "lns": 27081,
+  "polish": 25910
+ },
+ "components": {
+  "RoomAgeMix": 145,
+  "RoomSkillLevel": 2110,
+  "ContinuityOfCare": 1415,
+  "ExcessiveNurseWorkload": 325,
+  "OpenOperatingTheater": 2080,
+  "SurgeonTransfer": 70,
+  "PatientDelay": 11265,
+  "ElectiveUnscheduledPatients": 8500
+ }
+}

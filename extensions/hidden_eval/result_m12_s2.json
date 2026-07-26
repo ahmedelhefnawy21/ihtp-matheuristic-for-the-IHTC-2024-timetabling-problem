@@ -1,0 +1,25 @@
+{
+ "instance": "m12",
+ "seed": 2,
+ "objective": 13455,
+ "violations": 0,
+ "runtime_s": 1855.0,
+ "stage_costs": {
+  "construct": 14945,
+  "pas": 14493,
+  "alns": 14493,
+  "descent": 14302,
+  "lns": 14040,
+  "polish": 13455
+ },
+ "components": {
+  "RoomAgeMix": 1365,
+  "RoomSkillLevel": 661,
+  "ContinuityOfCare": 4655,
+  "ExcessiveNurseWorkload": 374,
+  "OpenOperatingTheater": 480,
+  "SurgeonTransfer": 20,
+  "PatientDelay": 3350,
+  "ElectiveUnscheduledPatients": 2550
+ }
+}

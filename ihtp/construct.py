@@ -10,7 +10,7 @@ rebalance this later.
 
 Lower layer (NRA): layout fixed, greedy_nra assigns nurses to occupied room-shifts.
 
-Out comes a complete SolutionState. Harness validator checks feasibility.
+Out comes a complete SolutionState. The validator checks feasibility.
 """
 
 from __future__ import annotations

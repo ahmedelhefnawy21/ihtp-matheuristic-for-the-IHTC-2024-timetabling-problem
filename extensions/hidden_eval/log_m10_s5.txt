@@ -1,0 +1,1 @@
+[m10 s5] objective=26431 violations=0 1220s

@@ -34,14 +34,15 @@ def main():
         rows.append((name, st, config.BEST_KNOWN[name]))
         print(name, st)
 
-    lines = [r"\begin{center}\small",
-             r"\captionof{table}{Cumulative ablation, adding the stages in pipeline order on four instances "
+    lines = [r"\begin{table}[!ht]",
+             r"\caption{Cumulative ablation, adding the stages in pipeline order on four instances "
              r"that span the size range from the small i04 to the largest i27 (seed 1, so the "
-             r"best-of-5 headline objective can be marginally lower). Each kept stage lowers the "
-             r"overall cost: the PAS-MIP gives the largest drop (admissions), the CP-SAT LNS and "
-             r"the NRA polish trim every row, and descent and the OT polish improve the instances "
-             r"where their cost term is not already minimal. Construction alone is infeasible on "
+             r"best-of-5 headline objective can be lower). The PAS-MIP gives the largest drop, "
+             r"from admissions. The CP-SAT LNS and the exact NRA solve lower every row. The "
+             r"ALNS, the descent, and the exact OT solve improve instances where their cost term "
+             r"is not already minimal. Construction alone is infeasible on "
              r"i16, so it has no scored construct objective there.}\label{tab:abl}",
+             r"\centering\small",
              r"\begin{tabular}{l" + "r" * (len(HEAD)) + "}",
              r"\toprule",
              "instance & " + " & ".join(HEAD) + r"\\",
@@ -49,7 +50,7 @@ def main():
     for name, st, bk in rows:
         cells = [fmt(st.get(c)) for c in COLS] + [fmt(bk)]
         lines.append(f"{name} & " + " & ".join(cells) + r"\\")
-    lines += [r"\bottomrule", r"\end{tabular}", r"\end{center}"]
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     with open(os.path.join(REPORT_DIR, "ablation_table.tex"), "w") as fh:
         fh.write("\n".join(lines))
     print("wrote ablation_table.tex")

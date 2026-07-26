@@ -1,0 +1,25 @@
+{
+ "instance": "m14",
+ "seed": 1,
+ "objective": 13388,
+ "violations": 0,
+ "runtime_s": 1596.1,
+ "stage_costs": {
+  "construct": 16790,
+  "pas": 14341,
+  "alns": 14341,
+  "descent": 14130,
+  "lns": 13704,
+  "polish": 13388
+ },
+ "components": {
+  "RoomAgeMix": 11,
+  "RoomSkillLevel": 730,
+  "ContinuityOfCare": 1047,
+  "ExcessiveNurseWorkload": 10,
+  "OpenOperatingTheater": 640,
+  "SurgeonTransfer": 40,
+  "PatientDelay": 1810,
+  "ElectiveUnscheduledPatients": 9100
+ }
+}

@@ -1,5 +1,6 @@
-\begin{center}\small
-\captionof{table}{Cumulative ablation, adding the stages in pipeline order on four instances that span the size range from the small i04 to the largest i27 (seed 1, so the best-of-5 headline objective can be marginally lower). Each kept stage lowers the overall cost: the PAS-MIP gives the largest drop (admissions), the CP-SAT LNS and the NRA polish trim every row, and descent and the OT polish improve the instances where their cost term is not already minimal. Construction alone is infeasible on i16, so it has no scored construct objective there.}\label{tab:abl}
+\begin{table}[!ht]
+\caption{Cumulative ablation, adding the stages in pipeline order on four instances that span the size range from the small i04 to the largest i27 (seed 1, so the best-of-5 headline objective can be lower). The PAS-MIP gives the largest drop, from admissions. The CP-SAT LNS and the exact NRA solve lower every row. The ALNS, the descent, and the exact OT solve improve instances where their cost term is not already minimal. Construction alone is infeasible on i16, so it has no scored construct objective there.}\label{tab:abl}
+\centering\small
 \begin{tabular}{lrrrrrrrr}
 \toprule
 instance & construct & +PAS & +ALNS & +descent & +LNS & +OT & +NRA & best-known\\
@@ -10,4 +11,4 @@ i16 & -- & 12\,127 & 12\,127 & 12\,043 & 11\,533 & 11\,533 & 11\,532 & 10\,139\\
 i27 & 85\,614 & 75\,184 & 68\,084 & 66\,464 & 65\,003 & 64\,583 & 63\,896 & 51\,828\\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}

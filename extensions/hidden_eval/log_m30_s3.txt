@@ -1,0 +1,1 @@
+[m30 s3] objective=35827 violations=0 2295s

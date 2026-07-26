@@ -1,17 +1,19 @@
 """Exact admission MILP for the dominant objective term.
 
-Unscheduled optional patients dominate the objective (weight 300 to 500 each), and heuristic
+Unscheduled optional patients dominate the objective (weight 150 to 500 each), and heuristic
 admission plateaus below the reference. What binds is surgeon-day and theatre-day capacity, a
 bin-packing that local search chokes on but a MILP handles fine. Splitting off a MILP
 admission core is the standard decomposition here 
 (see the report)
 
-Decides only the admission day per patient (surgery that day). That's where the admission vs
-capacity trade-off lives. Rooms get assigned later by the heuristic layer; ALNS and the exact
-NRA/OT polish then refine everything. So this is one piece of the matheuristic, not the whole
-thing.
+Two variants live here. ``solve_pas_full`` is the one the pipeline runs (stage 2).
+It decides the admission day AND the room, with exact gender, capacity, and
+compatibility. ``solve_admission``, documented below, decides only the admission
+day and leaves rooms to the heuristic layer. Either way this is one piece of the
+matheuristic, not the whole thing. ALNS and the exact NRA/OT solves refine what
+it returns.
 
-Model:
+Model (``solve_admission``, the day-only variant):
 ``x[p,d] in {0,1}`` : p admitted on day d (feasible (p,d) only).
     * ``sum_d x[p,d] == 1`` mandatory p (H5);  ``<= 1`` optional p.
     * surgeon-day capacity (H3), per surgeon u, day δ:
@@ -22,9 +24,9 @@ Model:
           occupants_present[δ] + sum_{p,d : d<=δ<d+los_p} x[p,d]  <=  total_beds.
 Objective: minimise  w_unsched * (#optional not admitted)  +  w_delay * total delay.
 
-Room and gender feasibility (H1, H2) relaxed here, left to the heuristic room assignment. So
-the MILP is an optimistic target: the heuristic realises as much as the exact room packing
-allows, ALNS mops up the rest.
+Room and gender feasibility (H1, H2) are relaxed in that day-only variant, left to
+the heuristic room assignment, so it is an optimistic target. ``solve_pas_full``
+enforces both exactly. See its own docstring for the gender-indicator constraints.
 """
 
 from __future__ import annotations

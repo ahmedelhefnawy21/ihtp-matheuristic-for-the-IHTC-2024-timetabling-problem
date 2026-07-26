@@ -1,0 +1,1 @@
+[m06 s4] objective=28635 violations=0 1595s

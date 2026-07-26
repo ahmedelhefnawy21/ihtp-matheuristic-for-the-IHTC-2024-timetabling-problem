@@ -52,3 +52,7 @@ temp/
 *.tar
 *.tar.gz
 *.rar
+
+# Keep the recorded experiment logs in extensions/ (they are part of the
+# evidence trail; the *.log rules above would otherwise drop them)
+!extensions/**/*.log

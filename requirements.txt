@@ -2,4 +2,4 @@
 # Tested with Python 3.12.13 on macOS (Apple Silicon).
 numpy==2.5.1
 gurobipy==13.0.2      # only commercial solver used; requires an academic/commercial license
-ortools==9.15.6755    # open-source CP-SAT fallback for the exact sub-models
+ortools==9.15.6755    # CP-SAT: drives the capacity-creating LNS re-pack stage

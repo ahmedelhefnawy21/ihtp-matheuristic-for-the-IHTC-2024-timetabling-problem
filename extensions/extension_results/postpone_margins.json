@@ -1,0 +1,62 @@
+[
+ {
+  "instance": "i01",
+  "w8_penalty": 350,
+  "n_optional": 20,
+  "n_negative": 0,
+  "min": 160,
+  "p10": 195,
+  "median": 289,
+  "max": 334
+ },
+ {
+  "instance": "i27",
+  "w8_penalty": 500,
+  "n_optional": 322,
+  "n_negative": 0,
+  "min": 58,
+  "p10": 187,
+  "median": 338,
+  "max": 595
+ },
+ {
+  "instance": "i17",
+  "w8_penalty": 500,
+  "n_optional": 270,
+  "n_negative": 0,
+  "min": 240,
+  "p10": 335,
+  "median": 557,
+  "max": 1070
+ },
+ {
+  "instance": "i29",
+  "w8_penalty": 300,
+  "n_optional": 190,
+  "n_negative": 0,
+  "min": 206,
+  "p10": 227,
+  "median": 280,
+  "max": 351
+ },
+ {
+  "instance": "i02",
+  "w8_penalty": 150,
+  "n_optional": 25,
+  "n_negative": 0,
+  "min": 82,
+  "p10": 87,
+  "median": 110,
+  "max": 147
+ },
+ {
+  "instance": "i21",
+  "w8_penalty": 250,
+  "n_optional": 234,
+  "n_negative": 0,
+  "min": 70,
+  "p10": 154,
+  "median": 355,
+  "max": 665
+ }
+]

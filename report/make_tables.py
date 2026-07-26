@@ -74,9 +74,9 @@ def write_bounds(run_dir, rows):
     bk_agg = 100.0 * bk_num / den if den else 0.0
     lines += [r"\bottomrule", r"\end{tabular}", r"\end{center}",
               rf"\noindent{{\small\emph{{Aggregate certified gap {agg:.1f}\% (ours) vs "
-              rf"{bk_agg:.1f}\% (best-known). The bound is valid but loose (it drops the room, "
-              rf"gender and nurse terms), so both gaps are large; the true optimum lies in "
-              rf"$[\text{{LB}},\,\text{{ours}}]$.}}}}"]
+              rf"{bk_agg:.1f}\% (best-known). The bound is valid but loose, since it drops "
+              rf"the room, gender and nurse terms. Both gaps are therefore large. The true "
+              rf"optimum lies in $[\text{{LB}},\,\text{{ours}}]$.}}}}"]
     with open(os.path.join(REPORT_DIR, "bounds_table.tex"), "w") as fh:
         fh.write("\n".join(lines))
     print(f"certified gap: ours {agg:.1f}%  best-known {bk_agg:.1f}%  (over {len(feas)} instances)")

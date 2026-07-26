@@ -1,4 +1,4 @@
-"""Certified lower bounds, so the gap is to the true optimum, not just to best known.
+"""Certified lower bounds, so the gap is to the true optimum, and not to best known alone.
 
 Competition best-known values are upper bounds the field found, not proven optima. Gap to
 them proves nothing about distance to optimal. So compute a valid lower bound on the true

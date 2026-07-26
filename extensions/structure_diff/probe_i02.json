@@ -1,0 +1,17 @@
+{
+ "instance": "i02",
+ "before": 1444,
+ "after": 1444,
+ "violations": 0,
+ "runtime_s": 0.2,
+ "nurse_before": {
+  "RoomSkillLevel": 235,
+  "ContinuityOfCare": 234,
+  "ExcessiveNurseWorkload": 10
+ },
+ "nurse_after": {
+  "RoomSkillLevel": 235,
+  "ContinuityOfCare": 234,
+  "ExcessiveNurseWorkload": 10
+ }
+}

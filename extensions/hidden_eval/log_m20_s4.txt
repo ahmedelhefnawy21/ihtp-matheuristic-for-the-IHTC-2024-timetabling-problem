@@ -1,0 +1,1 @@
+[m20 s4] objective=6217 violations=0 2223s

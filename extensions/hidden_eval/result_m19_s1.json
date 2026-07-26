@@ -1,0 +1,25 @@
+{
+ "instance": "m19",
+ "seed": 1,
+ "objective": 23262,
+ "violations": 0,
+ "runtime_s": 1909.5,
+ "stage_costs": {
+  "construct": 36265,
+  "pas": 24487,
+  "alns": 24154,
+  "descent": 23945,
+  "lns": 23603,
+  "polish": 23262
+ },
+ "components": {
+  "RoomAgeMix": 790,
+  "RoomSkillLevel": 198,
+  "ContinuityOfCare": 1025,
+  "ExcessiveNurseWorkload": 199,
+  "OpenOperatingTheater": 1350,
+  "SurgeonTransfer": 60,
+  "PatientDelay": 7490,
+  "ElectiveUnscheduledPatients": 12150
+ }
+}

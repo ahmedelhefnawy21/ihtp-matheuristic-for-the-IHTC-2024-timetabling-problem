@@ -1,0 +1,1 @@
+[m22 s4] objective=24748 violations=0 1977s
